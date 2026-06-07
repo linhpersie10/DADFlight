@@ -5,6 +5,7 @@ import {
   ArrowUpFromLine,
   CalendarDays,
   ChevronDown,
+  Database,
   Filter,
   MapPinned,
   Package,
@@ -642,6 +643,30 @@ function DashboardContent() {
             <div>
               <div className="eyebrow">DAD Flight Operations <span className="eyebrow-badge">LIVE</span></div>
               <h1>Thống kê phục vụ chuyến bay</h1>
+              {datasets.length > 0 && (
+                <div className="topbar-meta">
+                  <span className="topbar-meta-item">
+                    <MapPinned size={12} />
+                    Cảng Hàng không Quốc tế Đà Nẵng (DAD)
+                  </span>
+                  <span className="topbar-meta-sep" />
+                  <span className="topbar-meta-item highlight">
+                    <CalendarDays size={12} />
+                    {filters.dateFrom && filters.dateTo && filters.dateFrom !== filters.dateTo ? (
+                      <span>Từ {formatDate(filters.dateFrom)} đến {formatDate(filters.dateTo)}</span>
+                    ) : filters.dateFrom ? (
+                      <span>{formatDate(filters.dateFrom)}</span>
+                    ) : (
+                      <span>Tất cả {datasets.length} ngày</span>
+                    )}
+                  </span>
+                  <span className="topbar-meta-sep" />
+                  <span className="topbar-meta-item">
+                    <Database size={12} />
+                    {datasets.length} ngày ({formatNumber(allRecords.length)} leg)
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -725,27 +750,6 @@ function DashboardContent() {
 
         {datasets.length > 0 && (
           <>
-            {/* Report meta bar */}
-            <div className="report-bar">
-              <div className="report-bar-left">
-                <div className="report-date">
-                  <CalendarDays size={14} aria-hidden />
-                  {filters.dateFrom && filters.dateTo && filters.dateFrom !== filters.dateTo ? (
-                    <span>Từ {formatDate(filters.dateFrom)} đến {formatDate(filters.dateTo)}</span>
-                  ) : filters.dateFrom ? (
-                    <span>{formatDate(filters.dateFrom)}</span>
-                  ) : (
-                    <span>Tất cả {datasets.length} ngày</span>
-                  )}
-                </div>
-                <h2>Cảng Hàng không Quốc tế Đà Nẵng (DAD)</h2>
-                <span className="report-subtitle">{datasets.length} file đã tải · {formatNumber(allRecords.length)} leg tổng cộng</span>
-              </div>
-              <div className="report-meta">
-                <span>📅 {datasets.length} ngày báo cáo</span>
-                <span>{dateBounds.min && dateBounds.max ? `${formatDate(dateBounds.min)} – ${formatDate(dateBounds.max)}` : ""}</span>
-              </div>
-            </div>
 
             {/* FILTERS */}
             <section className={`filter-panel ${isFilterPanelExpanded ? "is-expanded" : "is-collapsed"} ${hasActiveFilters ? "has-active-filters" : ""}`}>

@@ -1352,26 +1352,40 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   display: none;
 }
 
-/* Scrolled Report Bar */
-.sticky-header-container.is-scrolled .report-bar {
-  padding: 4px 8px;
-  border: none;
-  background: transparent;
-  backdrop-filter: none;
-  gap: 8px;
+/* Topbar Meta Styling */
+.topbar-meta {
+  display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
 }
 
-.sticky-header-container.is-scrolled .report-bar h2 {
-  font-size: 0.85rem;
+.topbar-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
-.sticky-header-container.is-scrolled .report-bar .report-date {
-  font-size: 0.8rem;
+.topbar-meta-item svg {
+  color: var(--accent-cyan);
+  opacity: 0.8;
 }
 
-.sticky-header-container.is-scrolled .report-bar .report-subtitle,
-.sticky-header-container.is-scrolled .report-bar .report-meta {
+.topbar-meta-sep {
+  width: 1px;
+  height: 9px;
+  background: var(--border-subtle);
+}
+
+.topbar-meta-item.highlight {
+  color: var(--accent-cyan);
+}
+
+.sticky-header-container.is-scrolled .topbar-meta {
   display: none;
 }
 
@@ -1467,7 +1481,7 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
 /* Sticky Tab Bar & Table Headers under Scrolled Header */
 .sticky-header-container.is-scrolled ~ .content-area .tabbar {
   position: sticky;
-  top: 130px;
+  top: 100px;
   z-index: 90;
   background: rgba(8, 12, 24, 0.95);
   backdrop-filter: blur(12px);
@@ -1477,7 +1491,7 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
 
 .sticky-header-container.is-scrolled ~ .content-area th {
   position: sticky;
-  top: 174px;
+  top: 144px;
   z-index: 80;
   background: rgba(8, 12, 24, 0.95);
   backdrop-filter: blur(12px);
