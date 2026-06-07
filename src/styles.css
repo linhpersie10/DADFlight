@@ -1305,12 +1305,6 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
 
 /* ── STICKY CONTROL CENTER STYLES ── */
 .sticky-header-container {
-  position: relative;
-  background: transparent;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.sticky-header-container.is-scrolled {
   position: sticky;
   top: 0;
   z-index: 100;
@@ -1320,36 +1314,8 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   margin-left: -24px;
   margin-right: -24px;
-  padding: 10px 24px 8px 24px;
-}
-
-/* Scrolled Topbar */
-.sticky-header-container.is-scrolled .topbar {
-  margin-bottom: 4px;
-  padding-bottom: 4px;
-  border-bottom: none;
-}
-
-.sticky-header-container.is-scrolled h1 {
-  font-size: 1.1rem;
-}
-
-.sticky-header-container.is-scrolled .brand-icon {
-  width: 28px;
-  height: 28px;
-}
-
-.sticky-header-container.is-scrolled .brand-icon svg {
-  width: 14px;
-  height: 14px;
-}
-
-.sticky-header-container.is-scrolled .eyebrow {
-  display: none;
-}
-
-.sticky-header-container.is-scrolled .topbar-actions {
-  display: none;
+  padding: 16px 24px 12px 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Topbar Meta Styling */
@@ -1385,103 +1351,10 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   color: var(--accent-cyan);
 }
 
-.sticky-header-container.is-scrolled .topbar-meta {
-  display: none;
-}
-
-/* Scrolled Filter Panel */
-.sticky-header-container.is-scrolled .filter-panel {
-  margin-bottom: 4px;
-  border: none;
-  background: rgba(255, 255, 255, 0.02);
-  padding: 4px 8px;
-}
-
-.sticky-header-container.is-scrolled .filter-panel.is-expanded .filters-grid {
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.sticky-header-container.is-scrolled .filter-panel .filter-label {
-  font-size: 0.65rem;
-}
-
-.sticky-header-container.is-scrolled .filter-panel select,
-.sticky-header-container.is-scrolled .filter-panel input {
-  height: 28px;
-  font-size: 0.75rem;
-  padding: 2px 6px;
-}
-
-.sticky-header-container.is-scrolled .filter-panel .active-filters {
-  margin-top: 4px !important;
-}
-
-/* Scrolled Score Cards */
-.sticky-header-container.is-scrolled .score-grid {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 6px;
-  margin-bottom: 0;
-  padding-bottom: 4px;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.sticky-header-container.is-scrolled .score-grid::-webkit-scrollbar {
-  display: none;
-}
-
-.sticky-header-container.is-scrolled .score-card {
-  flex: 1 1 auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  border-radius: var(--radius-md);
-  min-width: max-content;
-}
-
-.sticky-header-container.is-scrolled .score-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-sm);
-}
-
-.sticky-header-container.is-scrolled .score-icon svg {
-  width: 11px;
-  height: 11px;
-}
-
-.sticky-header-container.is-scrolled .score-card > div:not(.score-icon) {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.sticky-header-container.is-scrolled .score-label {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-  margin-bottom: 0;
-}
-
-.sticky-header-container.is-scrolled .score-value {
-  font-size: 0.85rem;
-  margin-top: 0;
-}
-
-.sticky-header-container.is-scrolled .score-detail {
-  display: none;
-}
-
-/* Sticky Tab Bar & Table Headers under Scrolled Header */
-.sticky-header-container.is-scrolled ~ .content-area .tabbar {
+/* Sticky Tab Bar & Table Headers under Header */
+.sticky-header-container ~ .content-area .tabbar {
   position: sticky;
-  top: 100px;
+  top: var(--header-height, 240px);
   z-index: 90;
   background: rgba(8, 12, 24, 0.95);
   backdrop-filter: blur(12px);
@@ -1489,9 +1362,9 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   transition: top 0.2s ease;
 }
 
-.sticky-header-container.is-scrolled ~ .content-area th {
+.sticky-header-container ~ .content-area th {
   position: sticky;
-  top: 144px;
+  top: calc(var(--header-height, 240px) + 43px);
   z-index: 80;
   background: rgba(8, 12, 24, 0.95);
   backdrop-filter: blur(12px);

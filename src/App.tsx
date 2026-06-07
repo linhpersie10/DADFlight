@@ -418,15 +418,29 @@ function DashboardContent() {
   const [isFilterPanelExpanded, setIsFilterPanelExpanded] = useState(false);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
-  const [isScrolled, setIsScrolled] = useState(false);
+  const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 30);
+    if (!headerRef.current) return;
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        document.documentElement.style.setProperty(
+          "--header-height",
+          `${headerRef.current.offsetHeight}px`
+        );
+      }
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+
+    const observer = new ResizeObserver(() => {
+      updateHeaderHeight();
+    });
+    observer.observe(headerRef.current);
+    updateHeaderHeight();
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [datasets.length, isFilterPanelExpanded, isDateFilterExpanded, filters]);
 
   // Listen to Firestore datasets metadata list
   useEffect(() => {
@@ -634,7 +648,7 @@ function DashboardContent() {
   return (
     <main className="app-shell">
       {/* ── STICKY CONTROL CENTER (TOPBAR, META BAR, FILTERS, SCORE CARDS) ── */}
-      <div className={`sticky-header-container ${isScrolled ? "is-scrolled" : ""}`}>
+      <div ref={headerRef} className="sticky-header-container">
         {/* ── TOPBAR ── */}
         <header className="topbar">
           {/* Brand */}
