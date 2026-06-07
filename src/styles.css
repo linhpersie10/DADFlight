@@ -1093,8 +1093,6 @@ select:focus, input:focus {
 /* ── TABLE ── */
 .table-wrap {
   width: 100%;
-  overflow-x: auto;
-  overflow-y: visible;
 }
 
 table {
@@ -1362,13 +1360,35 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.sticky-header-container ~ .content-area th {
-  position: sticky;
-  top: calc(var(--header-height, 240px) + 43px);
-  z-index: 80;
-  background: rgba(8, 12, 24, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-subtle);
+/* Wide screens (Desktop): Disable horizontal scroll wrapper, enable window-sticky table headers */
+@media (min-width: 1401px) {
+  .table-wrap {
+    overflow: visible;
+  }
+  .sticky-header-container ~ .content-area th {
+    position: sticky;
+    top: calc(var(--header-height, 240px) + 43px);
+    z-index: 80;
+    background: rgba(8, 12, 24, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+}
+
+/* Smaller screens (Laptops/Tablets/Mobile): Enable horizontal scrolling, keep headers at the top of the table (no drifting) */
+@media (max-width: 1400px) {
+  .table-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+  .sticky-header-container ~ .content-area th {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    background: rgba(8, 12, 24, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+  }
 }
 
 /* ── AUTHENTICATION STYLES (Zero-Trust Pages) ── */
