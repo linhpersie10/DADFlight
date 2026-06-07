@@ -41,6 +41,8 @@ const INITIAL_FILTERS: DashboardFilters = {
   country: "",
   province: "",
   search: "",
+  dateFrom: "",
+  dateTo: "",
 };
 
 type TabKey = "market" | "origin" | "airline" | "detail";
@@ -350,13 +352,22 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
 function App() {
   const [datasets, setDatasets] = useState<FlightDataset[]>(() => loadDatasets());
   const [activeDate, setActiveDate] = useState(() => loadDatasets()[0]?.reportDate ?? "");
-  const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
+  const [filters, setFilters] = useState<DashboardFilters>(() => {
+    const all = loadDatasets();
+    const dates = all.map((d) => d.reportDate).sort();
+    return {
+      ...INITIAL_FILTERS,
+      dateFrom: dates[0] ?? "",
+      dateTo: dates[dates.length - 1] ?? "",
+    };
+  });
   const [activeTab, setActiveTab] = useState<TabKey>("market");
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
 
   useEffect(() => { saveDatasets(datasets); }, [datasets]);
 
+  // Keep activeDate in sync (used only for DatasetPicker display)
   useEffect(() => {
     if (!activeDate && datasets[0]) setActiveDate(datasets[0].reportDate);
     if (activeDate && !datasets.some((d) => d.reportDate === activeDate)) {
@@ -364,23 +375,38 @@ function App() {
     }
   }, [activeDate, datasets]);
 
-  const activeDataset = useMemo(
-    () => datasets.find((d) => d.reportDate === activeDate) ?? datasets[0],
-    [activeDate, datasets],
+  // All records from all datasets combined
+  const allRecords = useMemo(
+    () => datasets.flatMap((d) => d.records),
+    [datasets],
   );
 
-  const records = activeDataset?.records ?? [];
-  const filteredRecords = useMemo(() => filterRecords(records, filters), [records, filters]);
+  // Date bounds derived from loaded datasets
+  const dateBounds = useMemo(() => {
+    const dates = datasets.map((d) => d.reportDate).sort();
+    return { min: dates[0] ?? "", max: dates[dates.length - 1] ?? "" };
+  }, [datasets]);
+
+  const filteredRecords = useMemo(() => filterRecords(allRecords, filters), [allRecords, filters]);
   const filteredTotals = useMemo(() => totals(filteredRecords), [filteredRecords]);
   const marketRows = useMemo(() => summarizeByMarket(filteredRecords), [filteredRecords]);
   const originRows = useMemo(() => summarizeByOrigin(filteredRecords), [filteredRecords]);
   const airlineRows = useMemo(() => summarizeByAirline(filteredRecords), [filteredRecords]);
   const maxPassengers = Math.max(0, ...marketRows.map((r) => r.passengers), ...originRows.map((r) => r.passengers), ...airlineRows.map((r) => r.passengers));
 
-  const originOptions = useMemo(() => buildAirportOptions(records), [records]);
-  const airlineOptions = useMemo(() => buildAirlineOptions(records), [records]);
-  const countryOptions = useMemo(() => buildCountryOptions(records), [records]);
-  const provinceOptions = useMemo(() => buildProvinceOptions(records, filters.country), [records, filters.country]);
+  // Filter options built from records within current date range
+  const rangeRecords = useMemo(
+    () => allRecords.filter((r) =>
+      (!filters.dateFrom || r.reportDate >= filters.dateFrom) &&
+      (!filters.dateTo || r.reportDate <= filters.dateTo)
+    ),
+    [allRecords, filters.dateFrom, filters.dateTo],
+  );
+
+  const originOptions = useMemo(() => buildAirportOptions(rangeRecords), [rangeRecords]);
+  const airlineOptions = useMemo(() => buildAirlineOptions(rangeRecords), [rangeRecords]);
+  const countryOptions = useMemo(() => buildCountryOptions(rangeRecords), [rangeRecords]);
+  const provinceOptions = useMemo(() => buildProvinceOptions(rangeRecords, filters.country), [rangeRecords, filters.country]);
 
   useEffect(() => {
     if (filters.province && !provinceOptions.includes(filters.province)) {
@@ -388,7 +414,20 @@ function App() {
     }
   }, [filters.province, provinceOptions]);
 
-  const hasActiveFilters = filters.direction !== "all" || filters.airline || filters.origin || filters.country || filters.province || filters.search;
+  // Expand date range when new dataset is added
+  useEffect(() => {
+    if (!dateBounds.min) return;
+    setFilters((f) => ({
+      ...f,
+      dateFrom: f.dateFrom ? (f.dateFrom < dateBounds.min ? f.dateFrom : dateBounds.min) : dateBounds.min,
+      dateTo: f.dateTo ? (f.dateTo > dateBounds.max ? f.dateTo : dateBounds.max) : dateBounds.max,
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateBounds.min, dateBounds.max]);
+
+  const hasActiveDateFilter = (filters.dateFrom && filters.dateFrom !== dateBounds.min) ||
+    (filters.dateTo && filters.dateTo !== dateBounds.max);
+  const hasActiveFilters = hasActiveDateFilter || filters.direction !== "all" || filters.airline || filters.origin || filters.country || filters.province || filters.search;
 
   async function handleUpload(file: File | undefined) {
     if (!file) return;
@@ -401,7 +440,6 @@ function App() {
         return [dataset, ...without].sort((a, b) => b.reportDate.localeCompare(a.reportDate));
       });
       setActiveDate(dataset.reportDate);
-      setFilters(INITIAL_FILTERS);
       setMessage(`✓ Nhập ${formatNumber(dataset.sourceFlightRows)} dòng → ${formatNumber(dataset.legCount)} leg (${formatDate(dataset.reportDate)})`);
     } catch (error) {
       setMessage(`✕ ${error instanceof Error ? error.message : "Không thể đọc file Excel."}`);
@@ -412,7 +450,6 @@ function App() {
 
   function removeDataset(reportDate: string) {
     setDatasets((current) => current.filter((d) => d.reportDate !== reportDate));
-    if (activeDate === reportDate) setFilters(INITIAL_FILTERS);
   }
 
   const tabRowCounts: Record<TabKey, number> = {
@@ -480,29 +517,35 @@ function App() {
       </header>
 
       {/* ── FULL-WIDTH CONTENT ── */}
-      {activeDataset ? (
+      {datasets.length > 0 ? (
         <div className="content-area">
           {/* Report meta bar */}
           <div className="report-bar">
             <div className="report-bar-left">
               <div className="report-date">
                 <CalendarDays size={14} aria-hidden />
-                <span>{formatDate(activeDataset.reportDate)}</span>
+                {filters.dateFrom && filters.dateTo && filters.dateFrom !== filters.dateTo ? (
+                  <span>Từ {formatDate(filters.dateFrom)} đến {formatDate(filters.dateTo)}</span>
+                ) : filters.dateFrom ? (
+                  <span>{formatDate(filters.dateFrom)}</span>
+                ) : (
+                  <span>Tất cả {datasets.length} ngày</span>
+                )}
               </div>
-              <h2>{activeDataset.meta.airportName}</h2>
-              <span className="report-subtitle">{activeDataset.meta.dateRangeText || activeDataset.fileName}</span>
+              <h2>Cảng Hàng không Quốc tế Đà Nẵng (DAD)</h2>
+              <span className="report-subtitle">{datasets.length} file đã tải · {formatNumber(allRecords.length)} leg tổng cộng</span>
             </div>
             <div className="report-meta">
-              <span>📄 {activeDataset.fileName}</span>
-              <span>Nhập lúc: {new Date(activeDataset.importedAt).toLocaleString("vi-VN")}</span>
+              <span>📅 {datasets.length} ngày báo cáo</span>
+              <span>{dateBounds.min && dateBounds.max ? `${formatDate(dateBounds.min)} – ${formatDate(dateBounds.max)}` : ""}</span>
             </div>
           </div>
 
           {/* Warnings */}
-          {activeDataset.warnings.length > 0 && (
+          {datasets.flatMap((d) => d.warnings).length > 0 && (
             <div className="warning-box" style={{ marginBottom: 12 }}>
-              <strong>⚠ Cảnh báo parse</strong>
-              {activeDataset.warnings.slice(0, 4).map((w) => <p key={w}>{w}</p>)}
+              <strong>⚠ Cảnh báo parse ({datasets.flatMap((d) => d.warnings).length} mục)</strong>
+              {datasets.flatMap((d) => d.warnings).slice(0, 4).map((w) => <p key={w}>{w}</p>)}
             </div>
           )}
 
@@ -514,13 +557,37 @@ function App() {
                 <span>Bộ lọc</span>
               </div>
               {hasActiveFilters && (
-                <button className="filter-clear-btn" type="button" onClick={() => setFilters(INITIAL_FILTERS)}>
+                <button className="filter-clear-btn" type="button" onClick={() => setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom: dateBounds.min, dateTo: dateBounds.max })) }>
                   <X size={10} style={{ display: "inline", marginRight: 3 }} />
                   Xóa bộ lọc
                 </button>
               )}
             </div>
             <div className="filters-grid">
+              {/* Date range — full-width row */}
+              <div className="date-range-group">
+                <label>
+                  Từ ngày
+                  <input
+                    type="date"
+                    value={filters.dateFrom}
+                    min={dateBounds.min}
+                    max={filters.dateTo || dateBounds.max}
+                    onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                  />
+                </label>
+                <span className="date-range-sep">—</span>
+                <label>
+                  Đến ngày
+                  <input
+                    type="date"
+                    value={filters.dateTo}
+                    min={filters.dateFrom || dateBounds.min}
+                    max={dateBounds.max}
+                    onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                  />
+                </label>
+              </div>
               <label>
                 Chiều bay
                 <select value={filters.direction} onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}>
@@ -575,6 +642,11 @@ function App() {
             </div>
             {hasActiveFilters && (
               <div className="active-filters">
+                {hasActiveDateFilter && (
+                  <span className="filter-chip">
+                    📅 {filters.dateFrom ? formatDate(filters.dateFrom) : "?"}{filters.dateFrom !== filters.dateTo ? ` – ${filters.dateTo ? formatDate(filters.dateTo) : "?"}` : ""}
+                  </span>
+                )}
                 {filters.direction !== "all" && <span className="filter-chip">{filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}</span>}
                 {filters.airline && <span className="filter-chip">✈ {filters.airline}</span>}
                 {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
@@ -621,7 +693,7 @@ function App() {
         <div className="empty-dashboard">
           <Upload size={40} aria-hidden style={{ opacity: 0.2 }} />
           <h2>Upload báo cáo Excel để xem dashboard</h2>
-          <p>Ứng dụng sẽ tự nhận diện nhóm hãng, tách chặng turnaround thành 2 leg và lưu dữ liệu theo ngày báo cáo.</p>
+          <p>Ứng dụng sẽ tự nhận diện nhóm hãng, tách chặng turnaround thành 2 leg và lưu dữ liệu theo ngày báo cáo. Có thể upload nhiều file để xem tổng hợp nhiều ngày.</p>
           <label className="upload-button" style={{ marginTop: 8 }}>
             <Upload size={15} />
             <span>Chọn file Excel</span>

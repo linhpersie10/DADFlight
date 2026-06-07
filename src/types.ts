@@ -64,6 +64,8 @@ export type DashboardFilters = {
   country: string;
   province: string;
   search: string;
+  dateFrom: string; // "YYYY-MM-DD" | ""
+  dateTo: string;   // "YYYY-MM-DD" | ""
 };
 
 export type SummaryRow = {

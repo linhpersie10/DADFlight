@@ -17,6 +17,8 @@ export function filterRecords(records: FlightLeg[], filters: DashboardFilters): 
     const origin = getAirportInfo(record.origin);
     const destination = getAirportInfo(record.destination);
 
+    if (filters.dateFrom && record.reportDate < filters.dateFrom) return false;
+    if (filters.dateTo && record.reportDate > filters.dateTo) return false;
     if (filters.direction !== "all" && record.direction !== filters.direction) return false;
     if (filters.airline && record.airline !== filters.airline) return false;
     if (filters.origin && record.origin !== filters.origin) return false;
