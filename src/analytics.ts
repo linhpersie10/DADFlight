@@ -154,3 +154,41 @@ export function summarizeByAirline(records: FlightLeg[]): SummaryRow[] {
   }
   return Array.from(groups.values()).sort((a, b) => b.passengers - a.passengers);
 }
+
+export const AIRCRAFT_CAPACITIES: Record<string, number> = {
+  "319": 144,
+  "A320": 180,
+  "A321": 220,
+  "A330": 377,
+  "A333": 377,
+  "ATR": 72,
+  "B38M": 189,
+  "B738": 189,
+  "B789": 300,
+  "GLEX": 19,
+};
+
+export function getAircraftCapacity(aircraftType: string): number | null {
+  if (!aircraftType) return null;
+  const cleanType = aircraftType.trim().toUpperCase();
+  
+  // Direct match
+  if (AIRCRAFT_CAPACITIES[cleanType] !== undefined) {
+    return AIRCRAFT_CAPACITIES[cleanType];
+  }
+  
+  // Substring or fuzzy matching (e.g. A321NEO matches A321, ATR72/ATR-72 matches ATR)
+  for (const [key, val] of Object.entries(AIRCRAFT_CAPACITIES)) {
+    if (cleanType.includes(key) || key.includes(cleanType)) {
+      return val;
+    }
+  }
+  
+  return null;
+}
+
+export function calculateOccupancy(adult: number, child: number, capacity: number): number | null {
+  if (!capacity || capacity <= 0) return null;
+  const seatOccupying = adult + child;
+  return (seatOccupying / capacity) * 100;
+}

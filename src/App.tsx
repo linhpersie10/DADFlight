@@ -28,6 +28,8 @@ import {
   summarizeByMarket,
   summarizeByOrigin,
   totals,
+  getAircraftCapacity,
+  calculateOccupancy,
 } from "./analytics";
 import { parseFlightExcel } from "./excelParser";
 import { loadDatasets, saveDatasets } from "./storage";
@@ -276,6 +278,24 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
 }
 
 function DetailTable({ records }: { records: FlightLeg[] }) {
+  const flightsWithCapacity = useMemo(() => {
+    return records.map(r => {
+      const cap = getAircraftCapacity(r.aircraftType);
+      return {
+        leg: r,
+        capacity: cap,
+        occupancy: cap ? calculateOccupancy(r.adult, r.child, cap) : null
+      };
+    });
+  }, [records]);
+
+  const overallOccupancy = useMemo(() => {
+    const valid = flightsWithCapacity.filter(f => f.capacity !== null);
+    const totalSeats = valid.reduce((sum, f) => sum + (f.capacity || 0), 0);
+    const totalSeatPassengers = valid.reduce((sum, f) => sum + (f.leg.adult + f.leg.child), 0);
+    return totalSeats > 0 ? (totalSeatPassengers / totalSeats) * 100 : null;
+  }, [flightsWithCapacity]);
+
   return (
     <>
       <div className="table-wrap detail-table">
@@ -288,6 +308,8 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
               <th>Chặng leg</th>
               <th>Chiều</th>
               <th>Loại MB</th>
+              <th className="number">Sức chứa</th>
+              <th className="number">Lấp đầy</th>
               <th className="number">Khách</th>
               <th className="number">ADL</th>
               <th className="number">CHD</th>
@@ -300,41 +322,55 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
             </tr>
           </thead>
           <tbody>
-            {records.map((record) => (
-              <tr key={record.id}>
-                <td style={{ fontSize: "0.8rem", fontVariantNumeric: "tabular-nums" }}>{formatDate(record.reportDate)}</td>
-                <td style={{ fontWeight: 700, fontSize: "0.85rem" }}>{record.airline}</td>
+            {flightsWithCapacity.map(({ leg, capacity, occupancy }) => (
+              <tr key={leg.id}>
+                <td style={{ fontSize: "0.8rem", fontVariantNumeric: "tabular-nums" }}>{formatDate(leg.reportDate)}</td>
+                <td style={{ fontWeight: 700, fontSize: "0.85rem" }}>{leg.airline}</td>
                 <td>
-                  <div className="main-cell">{record.flightNo}</div>
-                  {record.originalFlightNo !== record.flightNo && (
-                    <div className="muted">Gốc: {record.originalFlightNo}</div>
+                  <div className="main-cell">{leg.flightNo}</div>
+                  {leg.originalFlightNo !== leg.flightNo && (
+                    <div className="muted">Gốc: {leg.originalFlightNo}</div>
                   )}
                 </td>
                 <td>
-                  <div className="main-cell">{record.route}</div>
-                  {record.originalRoute !== record.route && (
-                    <div className="muted">Từ {record.originalRoute}</div>
+                  <div className="main-cell">{leg.route}</div>
+                  {leg.originalRoute !== leg.route && (
+                    <div className="muted">Từ {leg.originalRoute}</div>
                   )}
                 </td>
                 <td>
-                  <span className={`direction-pill ${record.direction}`}>
-                    {record.direction === "arrival" ? "↓ Đến DAD" : "↑ Đi từ DAD"}
+                  <span className={`direction-pill ${leg.direction}`}>
+                    {leg.direction === "arrival" ? "↓ Đến DAD" : "↑ Đi từ DAD"}
                   </span>
                 </td>
-                <td style={{ fontSize: "0.82rem" }}>{record.aircraftType}</td>
-                <td className="number" style={{ fontWeight: 700 }}>{formatNumber(record.passengerTotal)}</td>
-                <td className="number">{formatNumber(record.adult)}</td>
-                <td className="number">{formatNumber(record.child)}</td>
-                <td className="number">{formatNumber(record.infant)}</td>
-                <td className="number">{kg(record.baggageKg)}</td>
-                <td className="number">{kg(record.parcelKg)}</td>
-                <td className="number">{kg(record.cargoKg)}</td>
-                <td className="number">{transit(record.transitKg)}</td>
-                <td style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>#{record.sourceRow}</td>
+                <td style={{ fontSize: "0.82rem" }}>{leg.aircraftType}</td>
+                <td className="number" style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>
+                  {capacity ? `${capacity} ghế` : "—"}
+                </td>
+                <td className="number">
+                  {occupancy !== null ? (
+                    <span className={`occupancy-badge ${
+                      occupancy < 50 ? "low" : occupancy < 75 ? "medium" : occupancy < 90 ? "good" : "high"
+                    }`}>
+                      {occupancy.toFixed(1)}%
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="number" style={{ fontWeight: 700 }}>{formatNumber(leg.passengerTotal)}</td>
+                <td className="number">{formatNumber(leg.adult)}</td>
+                <td className="number">{formatNumber(leg.child)}</td>
+                <td className="number">{formatNumber(leg.infant)}</td>
+                <td className="number">{kg(leg.baggageKg)}</td>
+                <td className="number">{kg(leg.parcelKg)}</td>
+                <td className="number">{kg(leg.cargoKg)}</td>
+                <td className="number">{transit(leg.transitKg)}</td>
+                <td style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>#{leg.sourceRow}</td>
               </tr>
             ))}
             {!records.length && (
-              <tr><td colSpan={15} className="empty-cell">Không có leg bay phù hợp với bộ lọc.</td></tr>
+              <tr><td colSpan={17} className="empty-cell">Không có leg bay phù hợp với bộ lọc.</td></tr>
             )}
           </tbody>
         </table>
@@ -343,6 +379,18 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
         <div className="table-footer">
           <span>{formatNumber(records.length)} leg bay</span>
           <span>Tổng khách: {formatNumber(records.reduce((s, r) => s + r.passengerTotal, 0))}</span>
+          <span>
+            Hệ số lấp đầy TB:{" "}
+            {overallOccupancy !== null ? (
+              <span className={`occupancy-footer-value ${
+                overallOccupancy < 50 ? "low" : overallOccupancy < 75 ? "medium" : overallOccupancy < 90 ? "good" : "high"
+              }`}>
+                {overallOccupancy.toFixed(1)}%
+              </span>
+            ) : (
+              "—"
+            )}
+          </span>
         </div>
       )}
     </>
