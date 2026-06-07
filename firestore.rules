@@ -1,0 +1,90 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/PKT_DAD_users/$(userId)).data;
+    }
+
+    function isApproved(userId) {
+      let data = getUserData(userId);
+      return data.isApproved == true || data.status == 'approved';
+    }
+
+    function isAdmin(userId) {
+      let data = getUserData(userId);
+      return data.isAdmin == true || data.role == 'admin' || data.role == 'superadmin';
+    }
+
+    function isSuperadmin(userId) {
+      let data = getUserData(userId);
+      return data.isSuperadmin == true || data.role == 'superadmin';
+    }
+
+    // PKT_DAD_users rules
+    match /PKT_DAD_users/{userId} {
+      // User can read their own profile, Admins/Superadmins can read all profiles
+      allow read: if isOwner(userId) || (isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid)));
+
+      // Allow users to create their own profile initially
+      allow create: if isOwner(userId) &&
+        // Prevent self-promotion:
+        request.resource.data.role == (request.resource.data.email == 'linh.persie.10@gmail.com' ? 'superadmin' : 'user') &&
+        request.resource.data.status == (request.resource.data.email == 'linh.persie.10@gmail.com' ? 'approved' : 'pending') &&
+        request.resource.data.isApproved == (request.resource.data.email == 'linh.persie.10@gmail.com') &&
+        request.resource.data.isAdmin == (request.resource.data.email == 'linh.persie.10@gmail.com') &&
+        request.resource.data.isSuperadmin == (request.resource.data.email == 'linh.persie.10@gmail.com') &&
+        request.resource.data.email == request.auth.token.email;
+
+      // Allow updates:
+      // 1. Superadmin can update anything
+      // 2. Admin can update non-superadmins
+      // 3. User can update their own non-security profile info (requestedApps, hasPin, displayName, photoURL, fullName, updatedAt)
+      allow update: if (
+        isSignedIn() && (
+          isSuperadmin(request.auth.uid) ||
+          (isAdmin(request.auth.uid) && resource.data.role != 'superadmin') ||
+          (
+            isOwner(userId) &&
+            request.resource.data.role == resource.data.role &&
+            request.resource.data.status == resource.data.status &&
+            request.resource.data.isApproved == resource.data.isApproved &&
+            request.resource.data.isAdmin == resource.data.isAdmin &&
+            request.resource.data.isSuperadmin == resource.data.isSuperadmin
+          )
+        )
+      );
+
+      // Subcollection private (only contains PIN document)
+      match /private/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // PKT_DAD_datasets rules
+    match /PKT_DAD_datasets/{datasetId} {
+      allow read: if isSignedIn() && (isApproved(request.auth.uid) || isOwner(request.auth.uid));
+      allow write: if isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid));
+
+      // Subcollection legs
+      match /legs/{legId} {
+        allow read: if isSignedIn() && (isApproved(request.auth.uid) || isOwner(request.auth.uid));
+        allow write: if isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid));
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "firestore": [
+    {
+      "database": "pkt-dad",
+      "rules": "firestore.rules"
+    }
+  ]
+}
