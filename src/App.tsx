@@ -362,6 +362,7 @@ function App() {
     };
   });
   const [activeTab, setActiveTab] = useState<TabKey>("market");
+  const [isDateFilterExpanded, setIsDateFilterExpanded] = useState(false);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -563,31 +564,98 @@ function App() {
                 </button>
               )}
             </div>
-            <div className="filters-grid">
-              {/* Date range — full-width row */}
-              <div className="date-range-group">
-                <label>
-                  Từ ngày
-                  <input
-                    type="date"
-                    value={filters.dateFrom}
-                    min={dateBounds.min}
-                    max={filters.dateTo || dateBounds.max}
-                    onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                  />
-                </label>
-                <span className="date-range-sep">—</span>
-                <label>
-                  Đến ngày
-                  <input
-                    type="date"
-                    value={filters.dateTo}
-                    min={filters.dateFrom || dateBounds.min}
-                    max={dateBounds.max}
-                    onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                  />
-                </label>
+
+            {/* Bộ lọc Từ ngày - Đến ngày nổi bật & thu gọn */}
+            <div className={`date-filter-card ${hasActiveDateFilter ? "is-active" : ""}`}>
+              <div 
+                className="date-filter-header"
+                onClick={() => setIsDateFilterExpanded(!isDateFilterExpanded)}
+              >
+                <div className="date-filter-left">
+                  <div className={`date-filter-icon ${hasActiveDateFilter ? "active" : ""}`}>
+                    <CalendarDays size={16} />
+                  </div>
+                  <div>
+                    <div className="date-filter-label">Bộ lọc thời gian</div>
+                    <div className="date-filter-value">
+                      {filters.dateFrom && filters.dateTo ? (
+                        filters.dateFrom === filters.dateTo ? (
+                          <span className="highlight-date">{formatDate(filters.dateFrom)}</span>
+                        ) : (
+                          <>
+                            Từ <span className="highlight-date">{formatDate(filters.dateFrom)}</span> đến <span className="highlight-date">{formatDate(filters.dateTo)}</span>
+                          </>
+                        )
+                      ) : (
+                        "Tất cả thời gian"
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="date-filter-right">
+                  {hasActiveDateFilter && (
+                    <span className="date-filter-badge">Đang lọc</span>
+                  )}
+                  <div className={`date-filter-chevron ${isDateFilterExpanded ? "expanded" : ""}`}>
+                    <ChevronDown size={16} />
+                  </div>
+                </div>
               </div>
+
+              {isDateFilterExpanded && (
+                <div className="date-filter-body">
+                  <div className="date-filter-inputs">
+                    <label>
+                      Từ ngày
+                      <input
+                        type="date"
+                        value={filters.dateFrom}
+                        min={dateBounds.min}
+                        max={filters.dateTo || dateBounds.max}
+                        onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                      />
+                    </label>
+                    <span className="date-range-sep">—</span>
+                    <label>
+                      Đến ngày
+                      <input
+                        type="date"
+                        value={filters.dateTo}
+                        min={filters.dateFrom || dateBounds.min}
+                        max={dateBounds.max}
+                        onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                      />
+                    </label>
+                  </div>
+                  <div className="date-filter-presets">
+                    <button
+                      type="button"
+                      className="preset-btn"
+                      onClick={() => {
+                        setFilters((f) => ({ ...f, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
+                      }}
+                      disabled={!hasActiveDateFilter}
+                    >
+                      Mặc định (Toàn bộ)
+                    </button>
+                    {dateBounds.max && (
+                      <button
+                        type="button"
+                        className="preset-btn"
+                        onClick={() => {
+                          setFilters((f) => ({ ...f, dateFrom: dateBounds.max, dateTo: dateBounds.max }));
+                        }}
+                        disabled={filters.dateFrom === dateBounds.max && filters.dateTo === dateBounds.max}
+                      >
+                        Ngày mới nhất
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="filters-grid">
               <label>
                 Chiều bay
                 <select value={filters.direction} onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}>
