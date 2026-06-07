@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
   CalendarDays,
-  Database,
+  ChevronDown,
   Filter,
   MapPinned,
   Package,
@@ -51,7 +51,7 @@ function transit(value: number | null): string {
   return value === null ? "—" : formatNumber(value);
 }
 
-// Clock component
+// Live Clock
 function LiveClock() {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -66,6 +66,117 @@ function LiveClock() {
       <div className="clock-date">
         {now.toLocaleDateString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}
       </div>
+    </div>
+  );
+}
+
+// Dataset Picker Dropdown (replaces sidebar)
+function DatasetPicker({
+  datasets,
+  activeDate,
+  onSelect,
+  onRemove,
+  importing,
+  onUpload,
+  message,
+}: {
+  datasets: FlightDataset[];
+  activeDate: string;
+  onSelect: (date: string) => void;
+  onRemove: (date: string) => void;
+  importing: boolean;
+  onUpload: (file: File | undefined) => void;
+  message: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const activeDataset = datasets.find((d) => d.reportDate === activeDate);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="dataset-picker" ref={ref}>
+      <button
+        className="dataset-trigger"
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <CalendarDays size={15} />
+        <span>
+          {activeDataset ? formatDate(activeDataset.reportDate) : "Chọn ngày báo cáo"}
+        </span>
+        {datasets.length > 1 && (
+          <span className="picker-badge">{datasets.length}</span>
+        )}
+        <ChevronDown size={14} className={`picker-chevron ${open ? "open" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="dataset-dropdown">
+          <div className="dropdown-header">
+            <span>Dữ liệu theo ngày</span>
+            <label className="upload-button-sm">
+              <Upload size={13} />
+              <span>{importing ? "Đang đọc..." : "Upload"}</span>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                disabled={importing}
+                onChange={(e) => {
+                  onUpload(e.target.files?.[0]);
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
+
+          {message && (
+            <div className={`dropdown-message ${message.startsWith("✕") ? "error" : "success"}`}>
+              {message}
+            </div>
+          )}
+
+          {datasets.length === 0 ? (
+            <div className="dropdown-empty">
+              <Plane size={20} opacity={0.3} />
+              <p>Chưa có dữ liệu</p>
+            </div>
+          ) : (
+            <div className="dropdown-list">
+              {datasets.map((dataset) => (
+                <button
+                  key={dataset.reportDate}
+                  className={`dropdown-item ${dataset.reportDate === activeDate ? "active" : ""}`}
+                  type="button"
+                  onClick={() => { onSelect(dataset.reportDate); setOpen(false); }}
+                >
+                  <div className="dropdown-item-info">
+                    <strong>{formatDate(dataset.reportDate)}</strong>
+                    <small>{formatNumber(dataset.legCount)} leg · {formatNumber(dataset.sourceFlightRows)} dòng</small>
+                  </div>
+                  <Trash2
+                    size={13}
+                    className="dropdown-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemove(dataset.reportDate);
+                    }}
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -104,7 +215,7 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
         <table>
           <thead>
             <tr>
-              <th style={{ width: 32 }}>#</th>
+              <th style={{ width: 36 }}>#</th>
               <th>Điểm</th>
               <th>Quốc gia</th>
               <th>Tỉnh/TP</th>
@@ -122,9 +233,7 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
               const width = maxPassengers ? Math.max(4, Math.round((row.passengers / maxPassengers) * 100)) : 0;
               return (
                 <tr key={row.key}>
-                  <td>
-                    <span className="row-rank">{index + 1}</span>
-                  </td>
+                  <td><span className="row-rank">{index + 1}</span></td>
                   <td>
                     <div className="main-cell">{row.label}</div>
                     <div className="muted">{row.subLabel}</div>
@@ -147,11 +256,7 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
               );
             })}
             {!rows.length && (
-              <tr>
-                <td colSpan={11} className="empty-cell">
-                  Không có dữ liệu phù hợp với bộ lọc.
-                </td>
-              </tr>
+              <tr><td colSpan={11} className="empty-cell">Không có dữ liệu phù hợp với bộ lọc.</td></tr>
             )}
           </tbody>
         </table>
@@ -225,11 +330,7 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
               </tr>
             ))}
             {!records.length && (
-              <tr>
-                <td colSpan={15} className="empty-cell">
-                  Không có leg bay phù hợp với bộ lọc.
-                </td>
-              </tr>
+              <tr><td colSpan={15} className="empty-cell">Không có leg bay phù hợp với bộ lọc.</td></tr>
             )}
           </tbody>
         </table>
@@ -237,9 +338,7 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
       {records.length > 0 && (
         <div className="table-footer">
           <span>{formatNumber(records.length)} leg bay</span>
-          <span>
-            Tổng khách: {formatNumber(records.reduce((s, r) => s + r.passengerTotal, 0))}
-          </span>
+          <span>Tổng khách: {formatNumber(records.reduce((s, r) => s + r.passengerTotal, 0))}</span>
         </div>
       )}
     </>
@@ -300,7 +399,7 @@ function App() {
       });
       setActiveDate(dataset.reportDate);
       setFilters(INITIAL_FILTERS);
-      setMessage(`✓ Đã nhập ${formatNumber(dataset.sourceFlightRows)} dòng → ${formatNumber(dataset.legCount)} leg bay (${formatDate(dataset.reportDate)})`);
+      setMessage(`✓ Nhập ${formatNumber(dataset.sourceFlightRows)} dòng → ${formatNumber(dataset.legCount)} leg (${formatDate(dataset.reportDate)})`);
     } catch (error) {
       setMessage(`✕ ${error instanceof Error ? error.message : "Không thể đọc file Excel."}`);
     } finally {
@@ -336,26 +435,34 @@ function App() {
 
   return (
     <main className="app-shell">
-      {/* TOPBAR */}
+      {/* ── TOPBAR ── */}
       <header className="topbar">
+        {/* Brand */}
         <div className="topbar-brand">
-          <div className="brand-icon">
-            <Plane size={22} />
-          </div>
+          <div className="brand-icon"><Plane size={20} /></div>
           <div>
-            <div className="eyebrow">
-              DAD Flight Operations
-              <span className="eyebrow-badge">LIVE</span>
-            </div>
-            <h1>Quản lý và thống kê phục vụ chuyến bay</h1>
+            <div className="eyebrow">DAD Flight Operations <span className="eyebrow-badge">LIVE</span></div>
+            <h1>Thống kê phục vụ chuyến bay</h1>
           </div>
         </div>
 
+        {/* Dataset Picker — moved from sidebar */}
+        <DatasetPicker
+          datasets={datasets}
+          activeDate={activeDate}
+          onSelect={setActiveDate}
+          onRemove={removeDataset}
+          importing={importing}
+          onUpload={handleUpload}
+          message={message}
+        />
+
+        {/* Right actions */}
         <div className="topbar-actions">
           <LiveClock />
           <label className="upload-button">
-            <Upload size={16} aria-hidden />
-            <span>{importing ? "Đang đọc file..." : "Upload Excel"}</span>
+            <Upload size={15} aria-hidden />
+            <span>{importing ? "Đang đọc..." : "Upload Excel"}</span>
             <input
               type="file"
               accept=".xlsx,.xls"
@@ -369,254 +476,146 @@ function App() {
         </div>
       </header>
 
-      {/* MAIN GRID */}
-      <section className="workspace-grid">
-        {/* SIDEBAR */}
-        <aside className="side-panel">
-          {/* Airport Badge */}
-          <div className="airport-badge">
-            <div className="airport-code">DAD</div>
-            <div>
-              <div className="airport-name" style={{ fontWeight: 700, color: "var(--text-secondary)" }}>Cảng HKQT Đà Nẵng</div>
-              <div className="airport-name">Da Nang International Airport</div>
+      {/* ── FULL-WIDTH CONTENT ── */}
+      {activeDataset ? (
+        <div className="content-area">
+          {/* Report meta bar */}
+          <div className="report-bar">
+            <div className="report-bar-left">
+              <div className="report-date">
+                <CalendarDays size={14} aria-hidden />
+                <span>{formatDate(activeDataset.reportDate)}</span>
+              </div>
+              <h2>{activeDataset.meta.airportName}</h2>
+              <span className="report-subtitle">{activeDataset.meta.dateRangeText || activeDataset.fileName}</span>
+            </div>
+            <div className="report-meta">
+              <span>📄 {activeDataset.fileName}</span>
+              <span>Nhập lúc: {new Date(activeDataset.importedAt).toLocaleString("vi-VN")}</span>
             </div>
           </div>
 
-          <div className="panel-title">
-            <Database size={14} aria-hidden />
-            <span>Dữ liệu theo ngày</span>
-            {datasets.length > 0 && (
-              <span style={{ marginLeft: "auto", color: "var(--text-muted)", fontSize: "0.72rem" }}>
-                {datasets.length} file
-              </span>
-            )}
-          </div>
+          {/* Warnings */}
+          {activeDataset.warnings.length > 0 && (
+            <div className="warning-box" style={{ marginBottom: 12 }}>
+              <strong>⚠ Cảnh báo parse</strong>
+              {activeDataset.warnings.slice(0, 4).map((w) => <p key={w}>{w}</p>)}
+            </div>
+          )}
 
-          {datasets.length ? (
-            <div className="dataset-list">
-              {datasets.map((dataset) => (
+          {/* FILTERS */}
+          <section className="filter-panel">
+            <div className="filter-header">
+              <div className="panel-title" style={{ marginBottom: 0 }}>
+                <Filter size={13} />
+                <span>Bộ lọc</span>
+              </div>
+              {hasActiveFilters && (
+                <button className="filter-clear-btn" type="button" onClick={() => setFilters(INITIAL_FILTERS)}>
+                  <X size={10} style={{ display: "inline", marginRight: 3 }} />
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
+            <div className="filters-grid">
+              <label>
+                Chiều bay
+                <select value={filters.direction} onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}>
+                  <option value="all">Đi và đến</option>
+                  <option value="departure">Chỉ đi từ DAD</option>
+                  <option value="arrival">Chỉ đến DAD</option>
+                </select>
+              </label>
+              <label>
+                Điểm khởi hành
+                <select value={filters.origin} onChange={(e) => setFilters((f) => ({ ...f, origin: e.target.value }))}>
+                  <option value="">Tất cả</option>
+                  {originOptions.map((code) => (
+                    <option key={code} value={code}>{formatAirport(code)}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Quốc gia
+                <select value={filters.country} onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value, province: "" }))}>
+                  <option value="">Tất cả</option>
+                  {countryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+              <label>
+                Tỉnh/TP
+                <select value={filters.province} onChange={(e) => setFilters((f) => ({ ...f, province: e.target.value }))}>
+                  <option value="">Tất cả</option>
+                  {provinceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </label>
+              <label className="search-field">
+                Tìm kiếm
+                <span>
+                  <Search size={13} aria-hidden />
+                  <input
+                    value={filters.search}
+                    onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+                    placeholder="Số hiệu, hãng, chặng bay..."
+                  />
+                </span>
+              </label>
+            </div>
+            {hasActiveFilters && (
+              <div className="active-filters">
+                {filters.direction !== "all" && <span className="filter-chip">{filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}</span>}
+                {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
+                {filters.country && <span className="filter-chip">{filters.country}</span>}
+                {filters.province && <span className="filter-chip">{filters.province}</span>}
+                {filters.search && <span className="filter-chip">🔍 "{filters.search}"</span>}
+              </div>
+            )}
+          </section>
+
+          {/* SCORE CARDS */}
+          <section className="score-grid">
+            <ScoreCard color="cyan" icon={<Plane size={19} />} label="Chuyến bay chuẩn hóa" value={formatNumber(filteredTotals.legs)} detail={`${formatNumber(filteredTotals.sourceRows)} dòng Excel gốc`} />
+            <ScoreCard color="blue" icon={<Users size={19} />} label="Tổng khách bay" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)} · INF ${formatNumber(filteredTotals.infants)}`} />
+            <ScoreCard color="purple" icon={<ArrowDownToLine size={19} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
+            <ScoreCard color="green" icon={<ArrowUpFromLine size={19} />} label="Đi từ DAD" value={formatNumber(filteredTotals.departures)} detail={`${formatNumber(filteredTotals.departurePassengers)} khách đi`} />
+            <ScoreCard color="gold" icon={<Package size={19} />} label="Khối lượng phục vụ" value={kg(filteredTotals.baggageKg + filteredTotals.parcelKg + filteredTotals.cargoKg)} detail={`Hành lý ${kg(filteredTotals.baggageKg)} · Hàng hóa ${kg(filteredTotals.cargoKg)}`} />
+            <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Phạm vi khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
+          </section>
+
+          {/* TABS + TABLE */}
+          <section className="tabs-panel">
+            <div className="tabbar">
+              {(["market", "origin", "airline", "detail"] as TabKey[]).map((tab) => (
                 <button
-                  className={`dataset-item ${dataset.reportDate === activeDataset?.reportDate ? "active" : ""}`}
-                  key={dataset.reportDate}
-                  onClick={() => setActiveDate(dataset.reportDate)}
+                  key={tab}
+                  className={activeTab === tab ? "active" : ""}
+                  onClick={() => setActiveTab(tab)}
                   type="button"
                 >
-                  <span>
-                    <strong>{formatDate(dataset.reportDate)}</strong>
-                    <small>{formatNumber(dataset.legCount)} leg · {formatNumber(dataset.sourceFlightRows)} dòng</small>
-                  </span>
-                  <Trash2
-                    size={14}
-                    className="delete-btn"
-                    aria-label={`Xóa ${formatDate(dataset.reportDate)}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeDataset(dataset.reportDate);
-                    }}
-                  />
+                  {TAB_LABELS[tab]}
+                  <span className="tab-count">{formatNumber(tabRowCounts[tab])}</span>
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="empty-state">
-              <Plane size={28} aria-hidden />
-              <p>Chưa có dữ liệu. Upload file Excel báo cáo để bắt đầu.</p>
-            </div>
-          )}
-
-          {message && <div className="message">{message}</div>}
-          {activeDataset?.warnings.length ? (
-            <div className="warning-box">
-              <strong>⚠ Cảnh báo parse</strong>
-              {activeDataset.warnings.slice(0, 4).map((w) => (
-                <p key={w}>{w}</p>
-              ))}
-            </div>
-          ) : null}
-        </aside>
-
-        {/* CONTENT */}
-        <section className="content-panel">
-          {activeDataset ? (
-            <>
-              {/* REPORT HEAD */}
-              <div className="report-head">
-                <div>
-                  <div className="report-date">
-                    <CalendarDays size={16} aria-hidden />
-                    <span>{formatDate(activeDataset.reportDate)}</span>
-                  </div>
-                  <h2>{activeDataset.meta.airportName}</h2>
-                  <p>{activeDataset.meta.dateRangeText || activeDataset.fileName}</p>
-                </div>
-                <div className="report-meta">
-                  <span>📄 {activeDataset.fileName}</span>
-                  <span>Nhập lúc: {new Date(activeDataset.importedAt).toLocaleString("vi-VN")}</span>
-                </div>
-              </div>
-
-              {/* FILTERS */}
-              <section className="filter-panel">
-                <div className="filter-header">
-                  <div className="panel-title" style={{ marginBottom: 0 }}>
-                    <Filter size={14} aria-hidden />
-                    <span>Bộ lọc</span>
-                  </div>
-                  {hasActiveFilters && (
-                    <button
-                      className="filter-clear-btn"
-                      type="button"
-                      onClick={() => setFilters(INITIAL_FILTERS)}
-                    >
-                      <X size={10} style={{ display: "inline", marginRight: 3 }} />
-                      Xóa bộ lọc
-                    </button>
-                  )}
-                </div>
-                <div className="filters-grid">
-                  <label>
-                    Chiều bay
-                    <select value={filters.direction} onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}>
-                      <option value="all">Đi và đến</option>
-                      <option value="departure">Chỉ đi từ DAD</option>
-                      <option value="arrival">Chỉ đến DAD</option>
-                    </select>
-                  </label>
-                  <label>
-                    Điểm khởi hành
-                    <select value={filters.origin} onChange={(e) => setFilters((f) => ({ ...f, origin: e.target.value }))}>
-                      <option value="">Tất cả</option>
-                      {originOptions.map((code) => (
-                        <option key={code} value={code}>{formatAirport(code)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Quốc gia
-                    <select value={filters.country} onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value, province: "" }))}>
-                      <option value="">Tất cả</option>
-                      {countryOptions.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Tỉnh/TP
-                    <select value={filters.province} onChange={(e) => setFilters((f) => ({ ...f, province: e.target.value }))}>
-                      <option value="">Tất cả</option>
-                      {provinceOptions.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="search-field">
-                    Tìm kiếm
-                    <span>
-                      <Search size={14} aria-hidden />
-                      <input
-                        value={filters.search}
-                        onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                        placeholder="Số hiệu, hãng, chặng bay..."
-                      />
-                    </span>
-                  </label>
-                </div>
-
-                {/* Active filter chips */}
-                {hasActiveFilters && (
-                  <div className="active-filters">
-                    {filters.direction !== "all" && (
-                      <span className="filter-chip">
-                        {filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}
-                      </span>
-                    )}
-                    {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
-                    {filters.country && <span className="filter-chip">{filters.country}</span>}
-                    {filters.province && <span className="filter-chip">{filters.province}</span>}
-                    {filters.search && <span className="filter-chip">🔍 "{filters.search}"</span>}
-                  </div>
-                )}
-              </section>
-
-              {/* SCORE CARDS */}
-              <section className="score-grid">
-                <ScoreCard
-                  color="cyan"
-                  icon={<Plane size={20} aria-hidden />}
-                  label="Chuyến bay chuẩn hóa"
-                  value={formatNumber(filteredTotals.legs)}
-                  detail={`${formatNumber(filteredTotals.sourceRows)} dòng Excel gốc`}
-                />
-                <ScoreCard
-                  color="blue"
-                  icon={<Users size={20} aria-hidden />}
-                  label="Tổng khách bay"
-                  value={formatNumber(filteredTotals.passengers)}
-                  detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)} · INF ${formatNumber(filteredTotals.infants)}`}
-                />
-                <ScoreCard
-                  color="purple"
-                  icon={<ArrowDownToLine size={20} aria-hidden />}
-                  label="Đến DAD"
-                  value={formatNumber(filteredTotals.arrivals)}
-                  detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`}
-                />
-                <ScoreCard
-                  color="green"
-                  icon={<ArrowUpFromLine size={20} aria-hidden />}
-                  label="Đi từ DAD"
-                  value={formatNumber(filteredTotals.departures)}
-                  detail={`${formatNumber(filteredTotals.departurePassengers)} khách đi`}
-                />
-                <ScoreCard
-                  color="gold"
-                  icon={<Package size={20} aria-hidden />}
-                  label="Khối lượng phục vụ"
-                  value={kg(filteredTotals.baggageKg + filteredTotals.parcelKg + filteredTotals.cargoKg)}
-                  detail={`Hành lý ${kg(filteredTotals.baggageKg)} · Hàng hóa ${kg(filteredTotals.cargoKg)}`}
-                />
-                <ScoreCard
-                  color="cyan"
-                  icon={<MapPinned size={20} aria-hidden />}
-                  label="Phạm vi khai thác"
-                  value={`${formatNumber(filteredTotals.countryCount)} quốc gia`}
-                  detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`}
-                />
-              </section>
-
-              {/* TABS */}
-              <section className="tabs-panel">
-                <div className="tabbar">
-                  {(["market", "origin", "airline", "detail"] as TabKey[]).map((tab) => (
-                    <button
-                      key={tab}
-                      className={activeTab === tab ? "active" : ""}
-                      onClick={() => setActiveTab(tab)}
-                      type="button"
-                    >
-                      {TAB_LABELS[tab]}
-                      <span className="tab-count">{formatNumber(tabRowCounts[tab])}</span>
-                    </button>
-                  ))}
-                </div>
-                {activeTab === "detail" ? (
-                  <DetailTable records={filteredRecords} />
-                ) : (
-                  <SummaryTable rows={tabRows[activeTab]} maxPassengers={maxPassengers} />
-                )}
-              </section>
-            </>
-          ) : (
-            <div className="empty-dashboard">
-              <Upload size={40} aria-hidden style={{ opacity: 0.25 }} />
-              <h2>Upload báo cáo Excel để xem dashboard</h2>
-              <p>
-                Ứng dụng sẽ tự nhận diện nhóm hãng, tách chặng turnaround thành 2 leg và lưu dữ liệu theo ngày báo cáo.
-              </p>
-            </div>
-          )}
-        </section>
-      </section>
+            {activeTab === "detail" ? (
+              <DetailTable records={filteredRecords} />
+            ) : (
+              <SummaryTable rows={tabRows[activeTab]} maxPassengers={maxPassengers} />
+            )}
+          </section>
+        </div>
+      ) : (
+        <div className="empty-dashboard">
+          <Upload size={40} aria-hidden style={{ opacity: 0.2 }} />
+          <h2>Upload báo cáo Excel để xem dashboard</h2>
+          <p>Ứng dụng sẽ tự nhận diện nhóm hãng, tách chặng turnaround thành 2 leg và lưu dữ liệu theo ngày báo cáo.</p>
+          <label className="upload-button" style={{ marginTop: 8 }}>
+            <Upload size={15} />
+            <span>Chọn file Excel</span>
+            <input type="file" accept=".xlsx,.xls" disabled={importing} onChange={(e) => { void handleUpload(e.target.files?.[0]); e.currentTarget.value = ""; }} />
+          </label>
+        </div>
+      )}
     </main>
   );
 }
