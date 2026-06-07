@@ -18,6 +18,7 @@ export function filterRecords(records: FlightLeg[], filters: DashboardFilters): 
     const destination = getAirportInfo(record.destination);
 
     if (filters.direction !== "all" && record.direction !== filters.direction) return false;
+    if (filters.airline && record.airline !== filters.airline) return false;
     if (filters.origin && record.origin !== filters.origin) return false;
     if (filters.country && market.country !== filters.country) return false;
     if (filters.province && market.province !== filters.province) return false;
@@ -48,6 +49,10 @@ export function uniqueSorted(values: string[]): string[] {
 
 export function buildAirportOptions(records: FlightLeg[]) {
   return uniqueSorted(records.map((record) => record.origin));
+}
+
+export function buildAirlineOptions(records: FlightLeg[]) {
+  return uniqueSorted(records.map((record) => record.airline));
 }
 
 export function buildCountryOptions(records: FlightLeg[]) {

@@ -59,6 +59,7 @@ export type FlightDataset = {
 
 export type DashboardFilters = {
   direction: "all" | Direction;
+  airline: string;
   origin: string;
   country: string;
   province: string;

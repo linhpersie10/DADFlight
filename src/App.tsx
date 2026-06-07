@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { formatAirport } from "./airportReference";
 import {
+  buildAirlineOptions,
   buildAirportOptions,
   buildCountryOptions,
   buildProvinceOptions,
@@ -35,6 +36,7 @@ import "./styles.css";
 
 const INITIAL_FILTERS: DashboardFilters = {
   direction: "all",
+  airline: "",
   origin: "",
   country: "",
   province: "",
@@ -376,6 +378,7 @@ function App() {
   const maxPassengers = Math.max(0, ...marketRows.map((r) => r.passengers), ...originRows.map((r) => r.passengers), ...airlineRows.map((r) => r.passengers));
 
   const originOptions = useMemo(() => buildAirportOptions(records), [records]);
+  const airlineOptions = useMemo(() => buildAirlineOptions(records), [records]);
   const countryOptions = useMemo(() => buildCountryOptions(records), [records]);
   const provinceOptions = useMemo(() => buildProvinceOptions(records, filters.country), [records, filters.country]);
 
@@ -385,7 +388,7 @@ function App() {
     }
   }, [filters.province, provinceOptions]);
 
-  const hasActiveFilters = filters.direction !== "all" || filters.origin || filters.country || filters.province || filters.search;
+  const hasActiveFilters = filters.direction !== "all" || filters.airline || filters.origin || filters.country || filters.province || filters.search;
 
   async function handleUpload(file: File | undefined) {
     if (!file) return;
@@ -527,6 +530,15 @@ function App() {
                 </select>
               </label>
               <label>
+                Hãng hàng không
+                <select value={filters.airline} onChange={(e) => setFilters((f) => ({ ...f, airline: e.target.value }))}>
+                  <option value="">Tất cả</option>
+                  {airlineOptions.map((a) => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 Điểm khởi hành
                 <select value={filters.origin} onChange={(e) => setFilters((f) => ({ ...f, origin: e.target.value }))}>
                   <option value="">Tất cả</option>
@@ -564,6 +576,7 @@ function App() {
             {hasActiveFilters && (
               <div className="active-filters">
                 {filters.direction !== "all" && <span className="filter-chip">{filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}</span>}
+                {filters.airline && <span className="filter-chip">✈ {filters.airline}</span>}
                 {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
                 {filters.country && <span className="filter-chip">{filters.country}</span>}
                 {filters.province && <span className="filter-chip">{filters.province}</span>}
