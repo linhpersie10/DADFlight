@@ -46,6 +46,7 @@ import PinVerification from "./components/PinVerification";
 import UserManagement from "./components/UserManagement";
 import type { DashboardFilters, FlightDataset, FlightLeg, SummaryRow } from "./types";
 import "./styles.css";
+import { toPng } from 'html-to-image';
 
 const INITIAL_FILTERS: DashboardFilters = {
   direction: "all",
@@ -624,6 +625,37 @@ function DashboardContent() {
     }
   }
 
+  const handleDownloadImage = async () => {
+    const node = document.getElementById('dashboard-export-target');
+    if (!node) return;
+    
+    const toastId = toast.loading("Đang tạo ảnh chất lượng cao...");
+    try {
+      const dataUrl = await toPng(node, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: '#080c18',
+      });
+
+      const dateStr = filters.dateFrom && filters.dateFrom === filters.dateTo
+        ? filters.dateFrom
+        : filters.dateFrom && filters.dateTo
+          ? `${filters.dateFrom}_to_${filters.dateTo}`
+          : activeDate || 'All';
+
+      const fileName = `DADFlight_${activeTab}_${dateStr}.png`;
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+      
+      toast.success("Tải ảnh thành công!", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi khi tạo ảnh.", { id: toastId });
+    }
+  };
+
   const tabRowCounts: Record<TabKey, number> = {
     market: marketRows.length,
     origin: originRows.length,
@@ -654,7 +686,7 @@ function DashboardContent() {
   }
 
   return (
-    <main className="app-shell">
+    <main id="dashboard-export-target" className="app-shell">
       {/* ── STICKY CONTROL CENTER (TOPBAR, META BAR, FILTERS, SCORE CARDS) ── */}
       <div ref={headerRef} className="sticky-header-container">
         {/* ── TOPBAR ── */}
@@ -719,6 +751,20 @@ function DashboardContent() {
           {/* Right actions */}
           <div className="topbar-actions">
             <LiveClock />
+            {viewMode === "dashboard" && activeTab !== "detail" && datasets.length > 0 && (
+              <button
+                className="upload-button"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.1))', 
+                  borderColor: 'rgba(16,185,129,0.4)', 
+                  color: '#10b981' 
+                }}
+                onClick={handleDownloadImage}
+              >
+                <ArrowDownToLine size={15} />
+                <span>Tải ảnh</span>
+              </button>
+            )}
             {viewMode === "dashboard" && (
               <label className="upload-button">
                 <Upload size={15} aria-hidden />
