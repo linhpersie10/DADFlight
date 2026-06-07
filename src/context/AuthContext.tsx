@@ -4,6 +4,7 @@ import {
   User, 
   GoogleAuthProvider, 
   signInWithRedirect,
+  signInWithPopup,
   getRedirectResult,
   signOut,
   setPersistence,
@@ -226,10 +227,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticatingRef.current = true;
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      await signInWithRedirect(auth, provider);
+      await signInWithPopup(auth, provider);
     } catch (error: any) {
-      console.error('[Auth] Redirect login failed:', error);
-      throw error;
+      if (error.code === 'auth/popup-blocked') {
+        console.warn('[Auth] Popup blocked, falling back to redirect...');
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await signInWithRedirect(auth, provider);
+      } else {
+        console.error('[Auth] Popup login failed:', error);
+        throw error;
+      }
     } finally {
       isAuthenticatingRef.current = false;
     }
@@ -282,8 +290,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) throw new Error('No authenticated user');
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    sessionStorage.setItem('is_resetting_pin', 'true');
-    await signInWithRedirect(auth, provider);
+    try {
+      const result = await signInWithPopup(auth, provider);
+      if (result && result.user) {
+        const userRef = doc(db, 'PKT_DAD_users', result.user.uid);
+        const secretRef = doc(db, 'PKT_DAD_users', result.user.uid, 'private', 'pin');
+        await deleteDoc(secretRef);
+        await updateDoc(userRef, { hasPin: deleteField() });
+        setIsPinVerified(false);
+        toast.success('Xác minh thành công. Vui lòng tạo mã PIN mới.');
+        console.info('[Auth] PIN reset successfully after popup');
+      }
+    } catch (error: any) {
+      if (error.code === 'auth/popup-blocked') {
+        console.warn('[Auth] Reset PIN popup blocked, falling back to redirect...');
+        sessionStorage.setItem('is_resetting_pin', 'true');
+        await signInWithRedirect(auth, provider);
+      } else {
+        toast.error('Lỗi khi đặt lại PIN.');
+        console.error('[Auth] PIN reset failed:', error);
+        throw error;
+      }
+    }
   };
 
   const isAdmin = profile?.isAdmin === true || profile?.role === 'admin' || profile?.role === 'superadmin' || user?.email === SUPER_ADMIN_EMAIL;
