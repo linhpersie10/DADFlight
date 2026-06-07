@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsPinVerified(storedVerified);
 
         try {
-          const isSuperAdminEmail = currentUser.email === SUPER_ADMIN_EMAIL;
+          const isSuperAdminEmail = (currentUser.email || '').toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase().trim();
           const userRef = doc(db, 'PKT_DAD_users', currentUser.uid);
           const userSnap = await getDoc(userRef);
 
@@ -314,8 +314,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isAdmin = profile?.isAdmin === true || profile?.role === 'admin' || profile?.role === 'superadmin' || user?.email === SUPER_ADMIN_EMAIL;
-  const isSuperAdmin = profile?.isSuperadmin === true || profile?.role === 'superadmin' || user?.email === SUPER_ADMIN_EMAIL;
+  const isAdmin = profile?.isAdmin === true || profile?.role === 'admin' || profile?.role === 'superadmin' || user?.email?.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase().trim();
+  const isSuperAdmin = profile?.isSuperadmin === true || profile?.role === 'superadmin' || user?.email?.toLowerCase().trim() === SUPER_ADMIN_EMAIL.toLowerCase().trim();
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, isAdmin, isSuperAdmin, isPinVerified, login, logout, verifyPin, setPinCode, resetPin }}>

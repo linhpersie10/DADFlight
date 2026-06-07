@@ -42,13 +42,13 @@ service cloud.firestore {
 
       // Allow users to create their own profile initially
       allow create: if isOwner(userId) &&
-        // Prevent self-promotion:
-        request.resource.data.role == (request.resource.data.email == 'linh.persie.10@gmail.com' ? 'superadmin' : 'user') &&
-        request.resource.data.status == (request.resource.data.email == 'linh.persie.10@gmail.com' ? 'approved' : 'pending') &&
-        request.resource.data.isApproved == (request.resource.data.email == 'linh.persie.10@gmail.com') &&
-        request.resource.data.isAdmin == (request.resource.data.email == 'linh.persie.10@gmail.com') &&
-        request.resource.data.isSuperadmin == (request.resource.data.email == 'linh.persie.10@gmail.com') &&
-        request.resource.data.email == request.auth.token.email;
+        // Prevent self-promotion (case-insensitive email comparison):
+        request.resource.data.role == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com' ? 'superadmin' : 'user') &&
+        request.resource.data.status == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com' ? 'approved' : 'pending') &&
+        request.resource.data.isApproved == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
+        request.resource.data.isAdmin == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
+        request.resource.data.isSuperadmin == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
+        request.resource.data.email.lower() == request.auth.token.email.lower();
 
       // Allow updates:
       // 1. Superadmin can update anything
