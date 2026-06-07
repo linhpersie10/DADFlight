@@ -15,6 +15,7 @@ import {
   Upload,
   Users,
   X,
+  LogOut,
 } from "lucide-react";
 import { formatAirport } from "./airportReference";
 import {
@@ -33,7 +34,14 @@ import {
   calculateOccupancy,
 } from "./analytics";
 import { parseFlightExcel } from "./excelParser";
-import { loadDatasets, saveDatasets } from "./storage";
+import { saveDatasetToCloud, deleteDatasetFromCloud, fetchDatasetLegs } from "./storage";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db } from "./firebase";
+import { Toaster, toast } from "react-hot-toast";
+import Login from "./components/Login";
+import PendingApproval from "./components/PendingApproval";
+import PinVerification from "./components/PinVerification";
 import type { DashboardFilters, FlightDataset, FlightLeg, SummaryRow } from "./types";
 import "./styles.css";
 
@@ -398,18 +406,12 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
   );
 }
 
-function App() {
-  const [datasets, setDatasets] = useState<FlightDataset[]>(() => loadDatasets());
-  const [activeDate, setActiveDate] = useState(() => loadDatasets()[0]?.reportDate ?? "");
-  const [filters, setFilters] = useState<DashboardFilters>(() => {
-    const all = loadDatasets();
-    const dates = all.map((d) => d.reportDate).sort();
-    return {
-      ...INITIAL_FILTERS,
-      dateFrom: dates[0] ?? "",
-      dateTo: dates[dates.length - 1] ?? "",
-    };
-  });
+function DashboardContent() {
+  const { logout, profile } = useAuth();
+  const [datasets, setDatasets] = useState<FlightDataset[]>([]);
+  const [activeDate, setActiveDate] = useState<string>("");
+  const [loadingDatasets, setLoadingDatasets] = useState(true);
+  const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
   const [activeTab, setActiveTab] = useState<TabKey>("market");
   const [isDateFilterExpanded, setIsDateFilterExpanded] = useState(false);
   const [isFilterPanelExpanded, setIsFilterPanelExpanded] = useState(false);
@@ -425,7 +427,56 @@ function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  useEffect(() => { saveDatasets(datasets); }, [datasets]);
+  // Listen to Firestore datasets metadata list
+  useEffect(() => {
+    const q = query(collection(db, "PKT_DAD_datasets"), orderBy("reportDate", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const metaList = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          reportDate: data.reportDate,
+          fileName: data.fileName,
+          importedAt: data.importedAt,
+          meta: data.meta,
+          sourceFlightRows: data.sourceFlightRows,
+          legCount: data.legCount,
+          warnings: data.warnings || [],
+          records: []
+        } as FlightDataset;
+      });
+
+      setDatasets(current => {
+        return metaList.map(meta => {
+          const match = current.find(c => c.id === meta.id && c.records.length > 0);
+          return match ? { ...meta, records: match.records } : meta;
+        });
+      });
+      setLoadingDatasets(false);
+    }, (error) => {
+      console.error("[Firestore] Datasets listen failed:", error);
+      setLoadingDatasets(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Load missing legs for datasets reactively
+  useEffect(() => {
+    datasets.forEach(d => {
+      if (d.records.length === 0) {
+        fetchDatasetLegs(d.id).then(legs => {
+          setDatasets(current => 
+            current.map(item => 
+              item.id === d.id ? { ...item, records: legs } : item
+            )
+          );
+        }).catch(err => {
+          console.error(`[Firestore] Failed to fetch legs for dataset ${d.id}:`, err);
+        });
+      }
+    });
+  }, [datasets]);
 
   // Keep activeDate in sync (used only for DatasetPicker display)
   useEffect(() => {
@@ -515,22 +566,39 @@ function App() {
     setImporting(true);
     setMessage("");
     try {
+      setMessage("Đang đọc và phân tích file Excel...");
       const dataset = await parseFlightExcel(file);
-      setDatasets((current) => {
-        const without = current.filter((d) => d.reportDate !== dataset.reportDate);
-        return [dataset, ...without].sort((a, b) => b.reportDate.localeCompare(a.reportDate));
-      });
+      
+      setMessage("Đang tải dữ liệu lên Firestore...");
+      await saveDatasetToCloud(dataset);
+      
       setActiveDate(dataset.reportDate);
       setMessage(`✓ Nhập ${formatNumber(dataset.sourceFlightRows)} dòng → ${formatNumber(dataset.legCount)} leg (${formatDate(dataset.reportDate)})`);
+      toast.success(`Tải báo cáo ngày ${formatDate(dataset.reportDate)} lên Firestore thành công!`);
     } catch (error) {
       setMessage(`✕ ${error instanceof Error ? error.message : "Không thể đọc file Excel."}`);
+      toast.error('Lỗi khi tải báo cáo lên cloud.');
     } finally {
       setImporting(false);
     }
   }
 
-  function removeDataset(reportDate: string) {
-    setDatasets((current) => current.filter((d) => d.reportDate !== reportDate));
+  async function removeDataset(reportDate: string) {
+    const target = datasets.find(d => d.reportDate === reportDate);
+    if (!target) return;
+
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa dữ liệu ngày ${formatDate(reportDate)} khỏi Firestore?`)) {
+      return;
+    }
+
+    try {
+      toast.loading('Đang xóa dữ liệu khỏi Firestore...', { id: 'delete-dataset' });
+      await deleteDatasetFromCloud(target.id);
+      toast.success('Xóa dữ liệu thành công!', { id: 'delete-dataset' });
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi xóa báo cáo.', { id: 'delete-dataset' });
+    }
   }
 
   const tabRowCounts: Record<TabKey, number> = {
@@ -553,6 +621,14 @@ function App() {
     airline: "Theo hãng",
     detail: "Chi tiết leg bay",
   };
+
+  if (loadingDatasets) {
+    return (
+      <div className="auth-screen">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
     <main className="app-shell">
@@ -596,6 +672,54 @@ function App() {
                 }}
               />
             </label>
+
+            {/* Profile Avatar & Sign Out */}
+            {profile && (
+              <div className="topbar-profile" style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '10px', 
+                borderLeft: '1px solid var(--border-subtle)', 
+                paddingLeft: '16px', 
+                marginLeft: '16px' 
+              }}>
+                <img 
+                  src={profile.photoURL} 
+                  alt={profile.displayName} 
+                  referrerPolicy="no-referrer"
+                  style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid var(--border-accent)' }} 
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                    {profile.displayName}
+                  </span>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)', textTransform: 'capitalize' }}>
+                    {profile.role === 'superadmin' ? 'Super Admin' : profile.role === 'admin' ? 'Admin' : 'Thành viên'}
+                  </span>
+                </div>
+                <button 
+                  onClick={logout} 
+                  title="Đăng xuất" 
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    color: 'var(--text-secondary)', 
+                    cursor: 'pointer', 
+                    padding: '6px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    borderRadius: '4px', 
+                    marginLeft: '4px',
+                    transition: 'all 0.2s' 
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-red)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -886,6 +1010,52 @@ function App() {
         </div>
       )}
     </main>
+  );
+}
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, profile, loading, isPinVerified } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="auth-screen">
+        <div className="spinner" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
+  if (profile?.status !== 'approved') {
+    return <PendingApproval />;
+  }
+
+  if (!isPinVerified) {
+    return <PinVerification />;
+  }
+
+  return <>{children}</>;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Toaster 
+        position="top-right" 
+        toastOptions={{
+          style: {
+            background: '#162040',
+            color: '#f1f5f9',
+            border: '1px solid rgba(0, 212, 255, 0.15)'
+          }
+        }} 
+      />
+      <AuthGuard>
+        <DashboardContent />
+      </AuthGuard>
+    </AuthProvider>
   );
 }
 

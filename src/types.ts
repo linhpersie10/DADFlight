@@ -82,3 +82,23 @@ export type SummaryRow = {
   parcelKg: number;
   cargoKg: number;
 };
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  fullName?: string;
+  photoURL: string;
+  isApproved: boolean;
+  isAdmin?: boolean;
+  isSuperadmin?: boolean;
+  isRejected?: boolean;
+  requestedApps?: string[];
+  pinCode?: string; // Hashed PIN
+  hasPin?: boolean; // True if PIN is set
+  role?: 'admin' | 'user' | 'superadmin';
+  status?: 'approved' | 'pending' | 'rejected';
+  createdAt: any;
+  updatedAt: any;
+}
+
