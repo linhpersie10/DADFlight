@@ -55,6 +55,7 @@ const INITIAL_FILTERS: DashboardFilters = {
   search: "",
   dateFrom: "",
   dateTo: "",
+  flightScope: "all",
 };
 
 type TabKey = "market" | "origin" | "airline" | "detail";
@@ -579,7 +580,7 @@ function DashboardContent() {
 
   const hasActiveDateFilter = (filters.dateFrom && filters.dateFrom !== dateBounds.min) ||
     (filters.dateTo && filters.dateTo !== dateBounds.max);
-  const hasActiveFilters = hasActiveDateFilter || filters.direction !== "all" || filters.airline || filters.origin || filters.country || filters.province || filters.search;
+  const hasActiveFilters = hasActiveDateFilter || filters.direction !== "all" || filters.airline || filters.origin || filters.country || filters.province || filters.search || filters.flightScope !== "all";
 
   async function handleUpload(file: File | undefined) {
     if (!file) return;
@@ -911,6 +912,14 @@ function DashboardContent() {
                       </select>
                     </label>
                     <label onClick={(e) => e.stopPropagation()}>
+                      Tuyến bay
+                      <select value={filters.flightScope} onChange={(e) => setFilters((f) => ({ ...f, flightScope: e.target.value as DashboardFilters["flightScope"] }))}>
+                        <option value="all">Tất cả</option>
+                        <option value="domestic">Nội địa</option>
+                        <option value="international">Quốc tế</option>
+                      </select>
+                    </label>
+                    <label onClick={(e) => e.stopPropagation()}>
                       Hãng hàng không
                       <select value={filters.airline} onChange={(e) => setFilters((f) => ({ ...f, airline: e.target.value }))}>
                         <option value="">Tất cả</option>
@@ -965,6 +974,7 @@ function DashboardContent() {
                     </span>
                   )}
                   {filters.direction !== "all" && <span className="filter-chip">{filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}</span>}
+                  {filters.flightScope !== "all" && <span className="filter-chip">🌐 {filters.flightScope === "domestic" ? "Nội địa" : "Quốc tế"}</span>}
                   {filters.airline && <span className="filter-chip">✈ {filters.airline}</span>}
                   {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
                   {filters.country && <span className="filter-chip">{filters.country}</span>}

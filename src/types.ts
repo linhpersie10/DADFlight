@@ -66,6 +66,7 @@ export type DashboardFilters = {
   search: string;
   dateFrom: string; // "YYYY-MM-DD" | ""
   dateTo: string;   // "YYYY-MM-DD" | ""
+  flightScope: "all" | "domestic" | "international";
 };
 
 export type SummaryRow = {

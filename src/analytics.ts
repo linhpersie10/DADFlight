@@ -24,6 +24,15 @@ export function filterRecords(records: FlightLeg[], filters: DashboardFilters): 
     if (filters.origin && record.origin !== filters.origin) return false;
     if (filters.country && market.country !== filters.country) return false;
     if (filters.province && market.province !== filters.province) return false;
+
+    if (filters.flightScope && filters.flightScope !== "all") {
+      const isOriginVietnam = getAirportInfo(record.origin).country === "Vietnam";
+      const isDestVietnam = getAirportInfo(record.destination).country === "Vietnam";
+      const isDomestic = isOriginVietnam && isDestVietnam;
+      if (filters.flightScope === "domestic" && !isDomestic) return false;
+      if (filters.flightScope === "international" && isDomestic) return false;
+    }
+
     if (!search) return true;
 
     const haystack = [
