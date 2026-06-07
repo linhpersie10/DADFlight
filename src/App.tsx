@@ -63,7 +63,7 @@ const INITIAL_FILTERS: DashboardFilters = {
 type TabKey = "market" | "origin" | "airline" | "detail";
 
 function kg(value: number): string {
-  return `${formatNumber(value)} kg`;
+  return formatNumber(value);
 }
 
 function transit(value: number | null): string {
@@ -238,13 +238,13 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
               <th>Điểm</th>
               <th>Quốc gia</th>
               <th>Tỉnh/TP</th>
-              <th className="number">Chuyến</th>
-              <th className="number">Đến</th>
-              <th className="number">Đi</th>
-              <th className="number">Khách</th>
-              <th className="number">Hành lý</th>
-              <th className="number">Bưu kiện</th>
-              <th className="number">Hàng hóa</th>
+              <th className="number">Chuyến<span className="unit">(chuyến)</span></th>
+              <th className="number">Đến<span className="unit">(chuyến)</span></th>
+              <th className="number">Đi<span className="unit">(chuyến)</span></th>
+              <th className="number">Khách<span className="unit">(lượt)</span></th>
+              <th className="number">Hành lý<span className="unit">(kg)</span></th>
+              <th className="number">Bưu kiện<span className="unit">(kg)</span></th>
+              <th className="number">Hàng hóa<span className="unit">(kg)</span></th>
             </tr>
           </thead>
           <tbody>
@@ -321,16 +321,16 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
               <th>Chặng leg</th>
               <th>Chiều</th>
               <th>Loại MB</th>
-              <th className="number">Sức chứa</th>
-              <th className="number">Lấp đầy</th>
-              <th className="number">Khách</th>
-              <th className="number">ADL</th>
-              <th className="number">CHD</th>
-              <th className="number">INF</th>
-              <th className="number">Hành lý</th>
-              <th className="number">Bưu kiện</th>
-              <th className="number">Hàng hóa</th>
-              <th className="number">Transit</th>
+              <th className="number">Sức chứa<span className="unit">(ghế)</span></th>
+              <th className="number">Lấp đầy<span className="unit">(%)</span></th>
+              <th className="number">Khách<span className="unit">(lượt)</span></th>
+              <th className="number">ADL<span className="unit">(lượt)</span></th>
+              <th className="number">CHD<span className="unit">(lượt)</span></th>
+              <th className="number">INF<span className="unit">(lượt)</span></th>
+              <th className="number">Hành lý<span className="unit">(kg)</span></th>
+              <th className="number">Bưu kiện<span className="unit">(kg)</span></th>
+              <th className="number">Hàng hóa<span className="unit">(kg)</span></th>
+              <th className="number">Transit<span className="unit">(kg)</span></th>
               <th>Dòng gốc</th>
             </tr>
           </thead>
@@ -358,7 +358,7 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
                 </td>
                 <td style={{ fontSize: "0.82rem" }}>{leg.aircraftType}</td>
                 <td className="number" style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>
-                  {capacity ? `${capacity} ghế` : "—"}
+                  {capacity ? formatNumber(capacity) : "—"}
                 </td>
                 <td className="number">
                   {occupancy !== null ? (
