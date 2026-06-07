@@ -1041,7 +1041,7 @@ select:focus, input:focus {
 }
 
 /* ── TABS ── */
-.tabs-panel { overflow: hidden; }
+.tabs-panel { overflow: visible; }
 
 .tabbar {
   display: flex;
@@ -1093,7 +1093,8 @@ select:focus, input:focus {
 /* ── TABLE ── */
 .table-wrap {
   width: 100%;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: visible;
 }
 
 table {
@@ -1359,7 +1360,6 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   background: rgba(8, 12, 24, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
-  transition: top 0.2s ease;
 }
 
 .sticky-header-container ~ .content-area th {
@@ -1369,7 +1369,6 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   background: rgba(8, 12, 24, 0.95);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
-  transition: top 0.2s ease;
 }
 
 /* ── AUTHENTICATION STYLES (Zero-Trust Pages) ── */

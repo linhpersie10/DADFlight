@@ -3,3 +3,5 @@ dist/
 vite-dev.log
 vite-dev.err.log
 verification-dashboard.png
+
+.vercel
