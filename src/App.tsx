@@ -415,6 +415,15 @@ function App() {
   const [isFilterPanelExpanded, setIsFilterPanelExpanded] = useState(false);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 30);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => { saveDatasets(datasets); }, [datasets]);
 
@@ -547,72 +556,293 @@ function App() {
 
   return (
     <main className="app-shell">
-      {/* ── TOPBAR ── */}
-      <header className="topbar">
-        {/* Brand */}
-        <div className="topbar-brand">
-          <div className="brand-icon"><Plane size={20} /></div>
-          <div>
-            <div className="eyebrow">DAD Flight Operations <span className="eyebrow-badge">LIVE</span></div>
-            <h1>Thống kê phục vụ chuyến bay</h1>
+      {/* ── STICKY CONTROL CENTER (TOPBAR, META BAR, FILTERS, SCORE CARDS) ── */}
+      <div className={`sticky-header-container ${isScrolled ? "is-scrolled" : ""}`}>
+        {/* ── TOPBAR ── */}
+        <header className="topbar">
+          {/* Brand */}
+          <div className="topbar-brand">
+            <div className="brand-icon"><Plane size={20} /></div>
+            <div>
+              <div className="eyebrow">DAD Flight Operations <span className="eyebrow-badge">LIVE</span></div>
+              <h1>Thống kê phục vụ chuyến bay</h1>
+            </div>
           </div>
-        </div>
 
-        {/* Dataset Picker — moved from sidebar */}
-        <DatasetPicker
-          datasets={datasets}
-          activeDate={activeDate}
-          onSelect={setActiveDate}
-          onRemove={removeDataset}
-          importing={importing}
-          onUpload={handleUpload}
-          message={message}
-        />
+          {/* Dataset Picker — moved from sidebar */}
+          <DatasetPicker
+            datasets={datasets}
+            activeDate={activeDate}
+            onSelect={setActiveDate}
+            onRemove={removeDataset}
+            importing={importing}
+            onUpload={handleUpload}
+            message={message}
+          />
 
-        {/* Right actions */}
-        <div className="topbar-actions">
-          <LiveClock />
-          <label className="upload-button">
-            <Upload size={15} aria-hidden />
-            <span>{importing ? "Đang đọc..." : "Upload Excel"}</span>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              disabled={importing}
-              onChange={(e) => {
-                void handleUpload(e.target.files?.[0]);
-                e.currentTarget.value = "";
-              }}
-            />
-          </label>
-        </div>
-      </header>
+          {/* Right actions */}
+          <div className="topbar-actions">
+            <LiveClock />
+            <label className="upload-button">
+              <Upload size={15} aria-hidden />
+              <span>{importing ? "Đang đọc..." : "Upload Excel"}</span>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                disabled={importing}
+                onChange={(e) => {
+                  void handleUpload(e.target.files?.[0]);
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
+        </header>
 
-      {/* ── FULL-WIDTH CONTENT ── */}
+        {datasets.length > 0 && (
+          <>
+            {/* Report meta bar */}
+            <div className="report-bar">
+              <div className="report-bar-left">
+                <div className="report-date">
+                  <CalendarDays size={14} aria-hidden />
+                  {filters.dateFrom && filters.dateTo && filters.dateFrom !== filters.dateTo ? (
+                    <span>Từ {formatDate(filters.dateFrom)} đến {formatDate(filters.dateTo)}</span>
+                  ) : filters.dateFrom ? (
+                    <span>{formatDate(filters.dateFrom)}</span>
+                  ) : (
+                    <span>Tất cả {datasets.length} ngày</span>
+                  )}
+                </div>
+                <h2>Cảng Hàng không Quốc tế Đà Nẵng (DAD)</h2>
+                <span className="report-subtitle">{datasets.length} file đã tải · {formatNumber(allRecords.length)} leg tổng cộng</span>
+              </div>
+              <div className="report-meta">
+                <span>📅 {datasets.length} ngày báo cáo</span>
+                <span>{dateBounds.min && dateBounds.max ? `${formatDate(dateBounds.min)} – ${formatDate(dateBounds.max)}` : ""}</span>
+              </div>
+            </div>
+
+            {/* FILTERS */}
+            <section className={`filter-panel ${isFilterPanelExpanded ? "is-expanded" : "is-collapsed"} ${hasActiveFilters ? "has-active-filters" : ""}`}>
+              <div 
+                className="filter-header"
+                onClick={() => setIsFilterPanelExpanded(!isFilterPanelExpanded)}
+                style={{ cursor: "pointer", userSelect: "none" }}
+              >
+                <div className="panel-title" style={{ marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Filter size={13} />
+                  <span>Bộ lọc</span>
+                  {!isFilterPanelExpanded && (
+                    <span className="collapsed-filter-summary">
+                      {hasActiveFilters ? "(Đang áp dụng bộ lọc - Click để mở rộng)" : "(Mặc định - Click để mở rộng)"}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  {hasActiveFilters && (
+                    <button 
+                      className="filter-clear-btn" 
+                      type="button" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
+                      }}
+                    >
+                      <X size={10} style={{ display: "inline", marginRight: 3 }} />
+                      Xóa bộ lọc
+                    </button>
+                  )}
+                  <div className={`filter-panel-chevron ${isFilterPanelExpanded ? "expanded" : ""}`} style={{ display: "flex", alignItems: "center", transition: "transform 0.2s" }}>
+                    <ChevronDown size={14} />
+                  </div>
+                </div>
+              </div>
+
+              {isFilterPanelExpanded && (
+                <div className="filter-panel-body" style={{ marginTop: "14px" }}>
+                  {/* Bộ lọc Từ ngày - Đến ngày nổi bật & thu gọn */}
+                  <div className={`date-filter-card ${hasActiveDateFilter ? "is-active" : ""}`}>
+                    <div 
+                      className="date-filter-header"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDateFilterExpanded(!isDateFilterExpanded);
+                      }}
+                    >
+                      <div className="date-filter-left">
+                        <div className={`date-filter-icon ${hasActiveDateFilter ? "active" : ""}`}>
+                          <CalendarDays size={16} />
+                        </div>
+                        <div>
+                          <div className="date-filter-label">Bộ lọc thời gian</div>
+                          <div className="date-filter-value">
+                            {filters.dateFrom && filters.dateTo ? (
+                              filters.dateFrom === filters.dateTo ? (
+                                <span className="highlight-date">{formatDate(filters.dateFrom)}</span>
+                              ) : (
+                                <>
+                                  Từ <span className="highlight-date">{formatDate(filters.dateFrom)}</span> đến <span className="highlight-date">{formatDate(filters.dateTo)}</span>
+                                </>
+                              )
+                            ) : (
+                              "Tất cả thời gian"
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="date-filter-right">
+                        {hasActiveDateFilter && (
+                          <span className="date-filter-badge">Đang lọc</span>
+                        )}
+                        <div className={`date-filter-chevron ${isDateFilterExpanded ? "expanded" : ""}`}>
+                          <ChevronDown size={16} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {isDateFilterExpanded && (
+                      <div className="date-filter-body">
+                        <div className="date-filter-inputs">
+                          <label>
+                            Từ ngày
+                            <input
+                              type="date"
+                              value={filters.dateFrom}
+                              min={dateBounds.min}
+                              max={filters.dateTo || dateBounds.max}
+                              onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                            />
+                          </label>
+                          <span className="date-range-sep">—</span>
+                          <label>
+                            Đến ngày
+                            <input
+                              type="date"
+                              value={filters.dateTo}
+                              min={filters.dateFrom || dateBounds.min}
+                              max={dateBounds.max}
+                              onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                            />
+                          </label>
+                        </div>
+                        <div className="date-filter-presets">
+                          <button
+                            type="button"
+                            className="preset-btn"
+                            onClick={() => {
+                              setFilters((f) => ({ ...f, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
+                            }}
+                            disabled={!hasActiveDateFilter}
+                          >
+                            Mặc định (Toàn bộ)
+                          </button>
+                          {dateBounds.max && (
+                            <button
+                              type="button"
+                              className="preset-btn"
+                              onClick={() => {
+                                setFilters((f) => ({ ...f, dateFrom: dateBounds.max, dateTo: dateBounds.max }));
+                              }}
+                              disabled={filters.dateFrom === dateBounds.max && filters.dateTo === dateBounds.max}
+                            >
+                              Ngày mới nhất
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="filters-grid">
+                    <label onClick={(e) => e.stopPropagation()}>
+                      Chiều bay
+                      <select value={filters.direction} onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}>
+                        <option value="all">Đi và đến</option>
+                        <option value="departure">Chỉ đi từ DAD</option>
+                        <option value="arrival">Chỉ đến DAD</option>
+                      </select>
+                    </label>
+                    <label onClick={(e) => e.stopPropagation()}>
+                      Hãng hàng không
+                      <select value={filters.airline} onChange={(e) => setFilters((f) => ({ ...f, airline: e.target.value }))}>
+                        <option value="">Tất cả</option>
+                        {airlineOptions.map((a) => (
+                          <option key={a} value={a}>{a}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label onClick={(e) => e.stopPropagation()}>
+                      Điểm khởi hành
+                      <select value={filters.origin} onChange={(e) => setFilters((f) => ({ ...f, origin: e.target.value }))}>
+                        <option value="">Tất cả</option>
+                        {originOptions.map((code) => (
+                          <option key={code} value={code}>{formatAirport(code)}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label onClick={(e) => e.stopPropagation()}>
+                      Quốc gia
+                      <select value={filters.country} onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value, province: "" }))}>
+                        <option value="">Tất cả</option>
+                        {countryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </label>
+                    <label onClick={(e) => e.stopPropagation()}>
+                      Tỉnh/TP
+                      <select value={filters.province} onChange={(e) => setFilters((f) => ({ ...f, province: e.target.value }))}>
+                        <option value="">Tất cả</option>
+                        {provinceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </label>
+                    <label className="search-field" onClick={(e) => e.stopPropagation()}>
+                      Tìm kiếm
+                      <span>
+                        <Search size={13} aria-hidden />
+                        <input
+                          value={filters.search}
+                          onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+                          placeholder="Số hiệu, hãng, chặng bay..."
+                        />
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {hasActiveFilters && (
+                <div className="active-filters" style={{ marginTop: isFilterPanelExpanded ? "12px" : "8px" }}>
+                  {hasActiveDateFilter && (
+                    <span className="filter-chip">
+                      📅 {filters.dateFrom ? formatDate(filters.dateFrom) : "?"}{filters.dateFrom !== filters.dateTo ? ` – ${filters.dateTo ? formatDate(filters.dateTo) : "?"}` : ""}
+                    </span>
+                  )}
+                  {filters.direction !== "all" && <span className="filter-chip">{filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}</span>}
+                  {filters.airline && <span className="filter-chip">✈ {filters.airline}</span>}
+                  {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
+                  {filters.country && <span className="filter-chip">{filters.country}</span>}
+                  {filters.province && <span className="filter-chip">{filters.province}</span>}
+                  {filters.search && <span className="filter-chip">🔍 "{filters.search}"</span>}
+                </div>
+              )}
+            </section>
+
+            {/* SCORE CARDS */}
+            <section className="score-grid">
+              <ScoreCard color="cyan" icon={<Plane size={19} />} label="Chuyến bay chuẩn hóa" value={formatNumber(filteredTotals.legs)} detail={`${formatNumber(filteredTotals.sourceRows)} dòng Excel gốc`} />
+              <ScoreCard color="blue" icon={<Users size={19} />} label="Tổng khách bay" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)} · INF ${formatNumber(filteredTotals.infants)}`} />
+              <ScoreCard color="purple" icon={<ArrowDownToLine size={19} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
+              <ScoreCard color="green" icon={<ArrowUpFromLine size={19} />} label="Đi từ DAD" value={formatNumber(filteredTotals.departures)} detail={`${formatNumber(filteredTotals.departurePassengers)} khách đi`} />
+              <ScoreCard color="gold" icon={<Percent size={19} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`Tính trên ${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg bay có cấu hình`} />
+              <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Phạm vi khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
+            </section>
+          </>
+        )}
+      </div>
+
+      {/* ── CONTENT AREA (SCROLLABLE) ── */}
       {datasets.length > 0 ? (
         <div className="content-area">
-          {/* Report meta bar */}
-          <div className="report-bar">
-            <div className="report-bar-left">
-              <div className="report-date">
-                <CalendarDays size={14} aria-hidden />
-                {filters.dateFrom && filters.dateTo && filters.dateFrom !== filters.dateTo ? (
-                  <span>Từ {formatDate(filters.dateFrom)} đến {formatDate(filters.dateTo)}</span>
-                ) : filters.dateFrom ? (
-                  <span>{formatDate(filters.dateFrom)}</span>
-                ) : (
-                  <span>Tất cả {datasets.length} ngày</span>
-                )}
-              </div>
-              <h2>Cảng Hàng không Quốc tế Đà Nẵng (DAD)</h2>
-              <span className="report-subtitle">{datasets.length} file đã tải · {formatNumber(allRecords.length)} leg tổng cộng</span>
-            </div>
-            <div className="report-meta">
-              <span>📅 {datasets.length} ngày báo cáo</span>
-              <span>{dateBounds.min && dateBounds.max ? `${formatDate(dateBounds.min)} – ${formatDate(dateBounds.max)}` : ""}</span>
-            </div>
-          </div>
-
           {/* Warnings */}
           {datasets.flatMap((d) => d.warnings).length > 0 && (
             <div className="warning-box" style={{ marginBottom: 12 }}>
@@ -620,220 +850,6 @@ function App() {
               {datasets.flatMap((d) => d.warnings).slice(0, 4).map((w) => <p key={w}>{w}</p>)}
             </div>
           )}
-
-          {/* FILTERS */}
-          <section className={`filter-panel ${isFilterPanelExpanded ? "is-expanded" : "is-collapsed"} ${hasActiveFilters ? "has-active-filters" : ""}`}>
-            <div 
-              className="filter-header"
-              onClick={() => setIsFilterPanelExpanded(!isFilterPanelExpanded)}
-              style={{ cursor: "pointer", userSelect: "none" }}
-            >
-              <div className="panel-title" style={{ marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
-                <Filter size={13} />
-                <span>Bộ lọc</span>
-                {!isFilterPanelExpanded && (
-                  <span className="collapsed-filter-summary">
-                    {hasActiveFilters ? "(Đang áp dụng bộ lọc - Click để mở rộng)" : "(Mặc định - Click để mở rộng)"}
-                  </span>
-                )}
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                {hasActiveFilters && (
-                  <button 
-                    className="filter-clear-btn" 
-                    type="button" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
-                    }}
-                  >
-                    <X size={10} style={{ display: "inline", marginRight: 3 }} />
-                    Xóa bộ lọc
-                  </button>
-                )}
-                <div className={`filter-panel-chevron ${isFilterPanelExpanded ? "expanded" : ""}`} style={{ display: "flex", alignItems: "center", transition: "transform 0.2s" }}>
-                  <ChevronDown size={14} />
-                </div>
-              </div>
-            </div>
-
-            {isFilterPanelExpanded && (
-              <div className="filter-panel-body" style={{ marginTop: "14px" }}>
-                {/* Bộ lọc Từ ngày - Đến ngày nổi bật & thu gọn */}
-                <div className={`date-filter-card ${hasActiveDateFilter ? "is-active" : ""}`}>
-                  <div 
-                    className="date-filter-header"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsDateFilterExpanded(!isDateFilterExpanded);
-                    }}
-                  >
-                    <div className="date-filter-left">
-                      <div className={`date-filter-icon ${hasActiveDateFilter ? "active" : ""}`}>
-                        <CalendarDays size={16} />
-                      </div>
-                      <div>
-                        <div className="date-filter-label">Bộ lọc thời gian</div>
-                        <div className="date-filter-value">
-                          {filters.dateFrom && filters.dateTo ? (
-                            filters.dateFrom === filters.dateTo ? (
-                              <span className="highlight-date">{formatDate(filters.dateFrom)}</span>
-                            ) : (
-                              <>
-                                Từ <span className="highlight-date">{formatDate(filters.dateFrom)}</span> đến <span className="highlight-date">{formatDate(filters.dateTo)}</span>
-                              </>
-                            )
-                          ) : (
-                            "Tất cả thời gian"
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="date-filter-right">
-                      {hasActiveDateFilter && (
-                        <span className="date-filter-badge">Đang lọc</span>
-                      )}
-                      <div className={`date-filter-chevron ${isDateFilterExpanded ? "expanded" : ""}`}>
-                        <ChevronDown size={16} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {isDateFilterExpanded && (
-                    <div className="date-filter-body">
-                      <div className="date-filter-inputs">
-                        <label>
-                          Từ ngày
-                          <input
-                            type="date"
-                            value={filters.dateFrom}
-                            min={dateBounds.min}
-                            max={filters.dateTo || dateBounds.max}
-                            onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                          />
-                        </label>
-                        <span className="date-range-sep">—</span>
-                        <label>
-                          Đến ngày
-                          <input
-                            type="date"
-                            value={filters.dateTo}
-                            min={filters.dateFrom || dateBounds.min}
-                            max={dateBounds.max}
-                            onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                          />
-                        </label>
-                      </div>
-                      <div className="date-filter-presets">
-                        <button
-                          type="button"
-                          className="preset-btn"
-                          onClick={() => {
-                            setFilters((f) => ({ ...f, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
-                          }}
-                          disabled={!hasActiveDateFilter}
-                        >
-                          Mặc định (Toàn bộ)
-                        </button>
-                        {dateBounds.max && (
-                          <button
-                            type="button"
-                            className="preset-btn"
-                            onClick={() => {
-                              setFilters((f) => ({ ...f, dateFrom: dateBounds.max, dateTo: dateBounds.max }));
-                            }}
-                            disabled={filters.dateFrom === dateBounds.max && filters.dateTo === dateBounds.max}
-                          >
-                            Ngày mới nhất
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="filters-grid">
-                  <label onClick={(e) => e.stopPropagation()}>
-                    Chiều bay
-                    <select value={filters.direction} onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}>
-                      <option value="all">Đi và đến</option>
-                      <option value="departure">Chỉ đi từ DAD</option>
-                      <option value="arrival">Chỉ đến DAD</option>
-                    </select>
-                  </label>
-                  <label onClick={(e) => e.stopPropagation()}>
-                    Hãng hàng không
-                    <select value={filters.airline} onChange={(e) => setFilters((f) => ({ ...f, airline: e.target.value }))}>
-                      <option value="">Tất cả</option>
-                      {airlineOptions.map((a) => (
-                        <option key={a} value={a}>{a}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label onClick={(e) => e.stopPropagation()}>
-                    Điểm khởi hành
-                    <select value={filters.origin} onChange={(e) => setFilters((f) => ({ ...f, origin: e.target.value }))}>
-                      <option value="">Tất cả</option>
-                      {originOptions.map((code) => (
-                        <option key={code} value={code}>{formatAirport(code)}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label onClick={(e) => e.stopPropagation()}>
-                    Quốc gia
-                    <select value={filters.country} onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value, province: "" }))}>
-                      <option value="">Tất cả</option>
-                      {countryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </label>
-                  <label onClick={(e) => e.stopPropagation()}>
-                    Tỉnh/TP
-                    <select value={filters.province} onChange={(e) => setFilters((f) => ({ ...f, province: e.target.value }))}>
-                      <option value="">Tất cả</option>
-                      {provinceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </label>
-                  <label className="search-field" onClick={(e) => e.stopPropagation()}>
-                    Tìm kiếm
-                    <span>
-                      <Search size={13} aria-hidden />
-                      <input
-                        value={filters.search}
-                        onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                        placeholder="Số hiệu, hãng, chặng bay..."
-                      />
-                    </span>
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {hasActiveFilters && (
-              <div className="active-filters" style={{ marginTop: isFilterPanelExpanded ? "12px" : "8px" }}>
-                {hasActiveDateFilter && (
-                  <span className="filter-chip">
-                    📅 {filters.dateFrom ? formatDate(filters.dateFrom) : "?"}{filters.dateFrom !== filters.dateTo ? ` – ${filters.dateTo ? formatDate(filters.dateTo) : "?"}` : ""}
-                  </span>
-                )}
-                {filters.direction !== "all" && <span className="filter-chip">{filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}</span>}
-                {filters.airline && <span className="filter-chip">✈ {filters.airline}</span>}
-                {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
-                {filters.country && <span className="filter-chip">{filters.country}</span>}
-                {filters.province && <span className="filter-chip">{filters.province}</span>}
-                {filters.search && <span className="filter-chip">🔍 "{filters.search}"</span>}
-              </div>
-            )}
-          </section>
-
-          {/* SCORE CARDS */}
-          <section className="score-grid">
-            <ScoreCard color="cyan" icon={<Plane size={19} />} label="Chuyến bay chuẩn hóa" value={formatNumber(filteredTotals.legs)} detail={`${formatNumber(filteredTotals.sourceRows)} dòng Excel gốc`} />
-            <ScoreCard color="blue" icon={<Users size={19} />} label="Tổng khách bay" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)} · INF ${formatNumber(filteredTotals.infants)}`} />
-            <ScoreCard color="purple" icon={<ArrowDownToLine size={19} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
-            <ScoreCard color="green" icon={<ArrowUpFromLine size={19} />} label="Đi từ DAD" value={formatNumber(filteredTotals.departures)} detail={`${formatNumber(filteredTotals.departurePassengers)} khách đi`} />
-            <ScoreCard color="gold" icon={<Percent size={19} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`Tính trên ${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg bay có cấu hình`} />
-            <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Phạm vi khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
-          </section>
 
           {/* TABS + TABLE */}
           <section className="tabs-panel">
