@@ -1365,9 +1365,21 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   .table-wrap {
     overflow: visible;
   }
-  .sticky-header-container ~ .content-area th {
+  .sticky-header-container ~ .content-area .tabs-panel th {
     position: sticky;
     top: calc(var(--header-height, 240px) + 43px);
+    z-index: 80;
+    background: rgba(8, 12, 24, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  
+  .user-management-panel .table-wrapper {
+    overflow: visible !important;
+  }
+  .user-management-panel th {
+    position: sticky;
+    top: var(--header-height, 80px);
     z-index: 80;
     background: rgba(8, 12, 24, 0.95);
     backdrop-filter: blur(12px);
@@ -1381,7 +1393,19 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
     overflow-x: auto;
     overflow-y: visible;
   }
-  .sticky-header-container ~ .content-area th {
+  .sticky-header-container ~ .content-area .tabs-panel th {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    background: rgba(8, 12, 24, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  
+  .user-management-panel .table-wrapper {
+    overflow-x: auto !important;
+  }
+  .user-management-panel th {
     position: sticky;
     top: 0;
     z-index: 80;
