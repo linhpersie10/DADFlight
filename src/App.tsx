@@ -8,6 +8,7 @@ import {
   Filter,
   MapPinned,
   Package,
+  Percent,
   Plane,
   Search,
   Trash2,
@@ -438,6 +439,27 @@ function App() {
 
   const filteredRecords = useMemo(() => filterRecords(allRecords, filters), [allRecords, filters]);
   const filteredTotals = useMemo(() => totals(filteredRecords), [filteredRecords]);
+
+  const overallOccupancy = useMemo(() => {
+    let totalSeats = 0;
+    let totalSeatPassengers = 0;
+    let flightsWithCapCount = 0;
+
+    for (const r of filteredRecords) {
+      const cap = getAircraftCapacity(r.aircraftType);
+      if (cap !== null) {
+        totalSeats += cap;
+        totalSeatPassengers += (r.adult + r.child);
+        flightsWithCapCount++;
+      }
+    }
+    return {
+      rate: totalSeats > 0 ? (totalSeatPassengers / totalSeats) * 100 : null,
+      flightsWithCapCount,
+      totalFlights: filteredRecords.length
+    };
+  }, [filteredRecords]);
+
   const marketRows = useMemo(() => summarizeByMarket(filteredRecords), [filteredRecords]);
   const originRows = useMemo(() => summarizeByOrigin(filteredRecords), [filteredRecords]);
   const airlineRows = useMemo(() => summarizeByAirline(filteredRecords), [filteredRecords]);
@@ -779,7 +801,7 @@ function App() {
             <ScoreCard color="blue" icon={<Users size={19} />} label="Tổng khách bay" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)} · INF ${formatNumber(filteredTotals.infants)}`} />
             <ScoreCard color="purple" icon={<ArrowDownToLine size={19} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
             <ScoreCard color="green" icon={<ArrowUpFromLine size={19} />} label="Đi từ DAD" value={formatNumber(filteredTotals.departures)} detail={`${formatNumber(filteredTotals.departurePassengers)} khách đi`} />
-            <ScoreCard color="gold" icon={<Package size={19} />} label="Khối lượng phục vụ" value={kg(filteredTotals.baggageKg + filteredTotals.parcelKg + filteredTotals.cargoKg)} detail={`Hành lý ${kg(filteredTotals.baggageKg)} · Hàng hóa ${kg(filteredTotals.cargoKg)}`} />
+            <ScoreCard color="gold" icon={<Percent size={19} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`Tính trên ${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg bay có cấu hình`} />
             <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Phạm vi khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
           </section>
 
