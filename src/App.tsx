@@ -635,6 +635,12 @@ function DashboardContent() {
         quality: 1,
         pixelRatio: 2,
         backgroundColor: '#080c18',
+        width: node.scrollWidth,
+        height: node.scrollHeight,
+        style: {
+          margin: '0',
+          transform: 'none',
+        }
       });
 
       const dateStr = filters.dateFrom && filters.dateFrom === filters.dateTo
