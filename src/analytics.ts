@@ -1,5 +1,13 @@
 import { getAirportInfo } from "./airportReference";
-import type { DashboardFilters, FlightLeg, SummaryRow } from "./types";
+import type { DashboardFilters, FlightLeg, SummaryRow, Direction } from "./types";
+
+export interface RankingItem {
+  id: string;
+  label: string;
+  subLabel?: string;
+  value: number;
+  secondaryValue?: number;
+}
 
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat("vi-VN").format(value);
@@ -223,4 +231,173 @@ export function calculateOccupancy(adult: number, child: number, capacity: numbe
   if (!capacity || capacity <= 0) return null;
   const seatOccupying = adult + child;
   return (seatOccupying / capacity) * 100;
+}
+
+// --- LEADERBOARD RANKING FUNCTIONS ---
+
+function filterByDirection(records: FlightLeg[], dir: "arrival" | "departure" | "all") {
+  return dir === "all" ? records : records.filter(r => r.direction === dir);
+}
+
+// 1. Top 10 Đường bay đến thường xuyên nhất (theo số chuyến)
+export function getTopRoutesByFlightCount(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10): RankingItem[] {
+  const filtered = filterByDirection(records, dir);
+  const groups = new Map<string, { count: number, originName: string }>();
+  for (const r of filtered) {
+    const info = getAirportInfo(r.origin);
+    const key = info.code;
+    const existing = groups.get(key) || { count: 0, originName: `${info.city} (${info.code})` };
+    existing.count += 1;
+    groups.set(key, existing);
+  }
+  return Array.from(groups.entries())
+    .map(([id, data]) => ({ id, label: data.originName, value: data.count }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 2. Top 10 Đường bay đến đông khách nhất
+export function getTopRoutesByPassengers(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10): RankingItem[] {
+  const filtered = filterByDirection(records, dir);
+  const groups = new Map<string, { pax: number, originName: string }>();
+  for (const r of filtered) {
+    const info = getAirportInfo(r.origin);
+    const key = info.code;
+    const existing = groups.get(key) || { pax: 0, originName: `${info.city} (${info.code})` };
+    existing.pax += r.passengerTotal;
+    groups.set(key, existing);
+  }
+  return Array.from(groups.entries())
+    .map(([id, data]) => ({ id, label: data.originName, value: data.pax }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 3. Top 10 Đường bay đến có tỷ lệ lấp đầy cao nhất
+export function getTopRoutesByOccupancy(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10, minFlights = 3): RankingItem[] {
+  const filtered = filterByDirection(records, dir);
+  const groups = new Map<string, { totalPax: number, totalCap: number, flights: number, originName: string }>();
+  for (const r of filtered) {
+    const info = getAirportInfo(r.origin);
+    const key = info.code;
+    const existing = groups.get(key) || { totalPax: 0, totalCap: 0, flights: 0, originName: `${info.city} (${info.code})` };
+    const cap = getAircraftCapacity(r.aircraftType);
+    if (cap) {
+      existing.totalPax += (r.adult + r.child);
+      existing.totalCap += cap;
+      existing.flights += 1;
+    }
+    groups.set(key, existing);
+  }
+  return Array.from(groups.entries())
+    .filter(([_, data]) => data.flights >= minFlights && data.totalCap > 0)
+    .map(([id, data]) => ({ 
+      id, 
+      label: data.originName, 
+      value: (data.totalPax / data.totalCap) * 100,
+      secondaryValue: data.flights 
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 4. Top 10 Đường bay Quốc tế đến nhộn nhịp nhất (theo lượng khách)
+export function getTopInternationalRoutes(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10): RankingItem[] {
+  const filtered = filterByDirection(records, dir).filter(r => {
+    const info = getAirportInfo(r.origin);
+    return info.country !== "Vietnam";
+  });
+  const groups = new Map<string, { pax: number, originName: string, country: string }>();
+  for (const r of filtered) {
+    const info = getAirportInfo(r.origin);
+    const key = info.code;
+    const existing = groups.get(key) || { pax: 0, originName: `${info.city} (${info.code})`, country: info.country };
+    existing.pax += r.passengerTotal;
+    groups.set(key, existing);
+  }
+  return Array.from(groups.entries())
+    .map(([id, data]) => ({ id, label: data.originName, subLabel: data.country, value: data.pax }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 5. Top 10 Hãng hàng không chở nhiều khách đến nhất
+export function getTopAirlinesByPassengers(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10): RankingItem[] {
+  const filtered = filterByDirection(records, dir);
+  const groups = new Map<string, number>();
+  for (const r of filtered) {
+    groups.set(r.airline, (groups.get(r.airline) || 0) + r.passengerTotal);
+  }
+  return Array.from(groups.entries())
+    .map(([airline, pax]) => ({ id: airline, label: airline, value: pax }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 6. Top 10 Hãng hàng không vận chuyển Cargo/Bưu kiện nhiều nhất
+export function getTopAirlinesByCargo(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10): RankingItem[] {
+  const filtered = filterByDirection(records, dir);
+  const groups = new Map<string, number>();
+  for (const r of filtered) {
+    groups.set(r.airline, (groups.get(r.airline) || 0) + r.cargoKg + r.parcelKg);
+  }
+  return Array.from(groups.entries())
+    .map(([airline, kg]) => ({ id: airline, label: airline, value: kg }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 7. Top Hãng hàng không có tỷ lệ lấp đầy tốt nhất
+export function getTopAirlinesByOccupancy(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 5, minFlights = 3): RankingItem[] {
+  const filtered = filterByDirection(records, dir);
+  const groups = new Map<string, { totalPax: number, totalCap: number, flights: number }>();
+  for (const r of filtered) {
+    const existing = groups.get(r.airline) || { totalPax: 0, totalCap: 0, flights: 0 };
+    const cap = getAircraftCapacity(r.aircraftType);
+    if (cap) {
+      existing.totalPax += (r.adult + r.child);
+      existing.totalCap += cap;
+      existing.flights += 1;
+    }
+    groups.set(r.airline, existing);
+  }
+  return Array.from(groups.entries())
+    .filter(([_, data]) => data.flights >= minFlights && data.totalCap > 0)
+    .map(([airline, data]) => ({ 
+      id: airline, 
+      label: airline, 
+      value: (data.totalPax / data.totalCap) * 100,
+      secondaryValue: data.flights 
+    }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 8. Top 10 Tỉnh/Thành phố nội địa đóng góp nhiều khách đến nhất
+export function getTopProvincesByPassengers(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10): RankingItem[] {
+  const filtered = filterByDirection(records, dir).filter(r => {
+    return getAirportInfo(r.origin).country === "Vietnam";
+  });
+  const groups = new Map<string, number>();
+  for (const r of filtered) {
+    const province = getAirportInfo(r.origin).province || "Khác";
+    groups.set(province, (groups.get(province) || 0) + r.passengerTotal);
+  }
+  return Array.from(groups.entries())
+    .map(([province, pax]) => ({ id: province, label: province, value: pax }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+// 9. Top 10 Ngày cao điểm nhất
+export function getTopDaysByFlights(records: FlightLeg[], dir: "arrival" | "departure" | "all", limit = 10): RankingItem[] {
+  const filtered = filterByDirection(records, dir);
+  const groups = new Map<string, number>();
+  for (const r of filtered) {
+    groups.set(r.reportDate, (groups.get(r.reportDate) || 0) + 1);
+  }
+  return Array.from(groups.entries())
+    .map(([date, flights]) => ({ id: date, label: formatDate(date), value: flights }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
 }

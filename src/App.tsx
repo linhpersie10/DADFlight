@@ -44,6 +44,7 @@ import Login from "./components/Login";
 import PendingApproval from "./components/PendingApproval";
 import PinVerification from "./components/PinVerification";
 import UserManagement from "./components/UserManagement";
+import LeaderboardPanel from "./components/LeaderboardPanel";
 import type { DashboardFilters, FlightDataset, FlightLeg, SummaryRow } from "./types";
 import "./styles.css";
 import { toPng } from 'html-to-image';
@@ -60,7 +61,7 @@ const INITIAL_FILTERS: DashboardFilters = {
   flightScope: "all",
 };
 
-type TabKey = "market" | "origin" | "airline" | "detail";
+type TabKey = "market" | "origin" | "airline" | "detail" | "leaderboard";
 
 function kg(value: number): string {
   return formatNumber(value);
@@ -666,6 +667,7 @@ function DashboardContent() {
     market: marketRows.length,
     origin: originRows.length,
     airline: airlineRows.length,
+    leaderboard: 0,
     detail: filteredRecords.length,
   };
 
@@ -673,6 +675,7 @@ function DashboardContent() {
     market: marketRows,
     origin: originRows,
     airline: airlineRows,
+    leaderboard: [],
     detail: [],
   };
 
@@ -680,6 +683,7 @@ function DashboardContent() {
     market: "Theo điểm liên quan",
     origin: "Theo điểm khởi hành",
     airline: "Theo hãng",
+    leaderboard: "Xếp hạng",
     detail: "Chi tiết leg bay",
   };
 
@@ -1106,7 +1110,7 @@ function DashboardContent() {
           {/* TABS + TABLE */}
           <section className="tabs-panel">
             <div className="tabbar">
-              {(["market", "origin", "airline", "detail"] as TabKey[]).map((tab) => (
+              {(["market", "origin", "airline", "leaderboard", "detail"] as TabKey[]).map((tab) => (
                 <button
                   key={tab}
                   className={activeTab === tab ? "active" : ""}
@@ -1114,11 +1118,15 @@ function DashboardContent() {
                   type="button"
                 >
                   {TAB_LABELS[tab]}
-                  <span className="tab-count">{formatNumber(tabRowCounts[tab])}</span>
+                  {tab !== "leaderboard" && (
+                    <span className="tab-count">{formatNumber(tabRowCounts[tab])}</span>
+                  )}
                 </button>
               ))}
             </div>
-            {activeTab === "detail" ? (
+            {activeTab === "leaderboard" ? (
+              <LeaderboardPanel records={filteredRecords} />
+            ) : activeTab === "detail" ? (
               <DetailTable records={filteredRecords} />
             ) : (
               <SummaryTable rows={tabRows[activeTab]} maxPassengers={maxPassengers} />
