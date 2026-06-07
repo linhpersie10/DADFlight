@@ -43,6 +43,7 @@ import { Toaster, toast } from "react-hot-toast";
 import Login from "./components/Login";
 import PendingApproval from "./components/PendingApproval";
 import PinVerification from "./components/PinVerification";
+import UserManagement from "./components/UserManagement";
 import type { DashboardFilters, FlightDataset, FlightLeg, SummaryRow } from "./types";
 import "./styles.css";
 
@@ -422,6 +423,7 @@ function DashboardContent() {
   const [loadingDatasets, setLoadingDatasets] = useState(true);
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
   const [activeTab, setActiveTab] = useState<TabKey>("market");
+  const [viewMode, setViewMode] = useState<"dashboard" | "users">("dashboard");
   const [isDateFilterExpanded, setIsDateFilterExpanded] = useState(false);
   const [isFilterPanelExpanded, setIsFilterPanelExpanded] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -662,8 +664,12 @@ function DashboardContent() {
             <div className="brand-icon"><Plane size={20} /></div>
             <div>
               <div className="eyebrow">DAD Flight Operations <span className="eyebrow-badge">LIVE</span></div>
-              <h1>Thống kê phục vụ chuyến bay</h1>
-              {datasets.length > 0 && (
+              {viewMode === "users" ? (
+                <h1>Quản trị hệ thống</h1>
+              ) : (
+                <h1>Thống kê phục vụ chuyến bay</h1>
+              )}
+              {viewMode === "dashboard" && datasets.length > 0 ? (
                 <div className="topbar-meta">
                   <span className="topbar-meta-item">
                     <MapPinned size={12} />
@@ -686,37 +692,48 @@ function DashboardContent() {
                     {datasets.length} ngày ({formatNumber(allRecords.length)} leg)
                   </span>
                 </div>
-              )}
+              ) : viewMode === "users" ? (
+                <div className="topbar-meta">
+                  <span className="topbar-meta-item highlight">
+                    <Users size={12} />
+                    Cổng quản lý và cấu hình phân quyền người dùng
+                  </span>
+                </div>
+              ) : null}
             </div>
           </div>
 
           {/* Dataset Picker — moved from sidebar */}
-          <DatasetPicker
-            datasets={datasets}
-            activeDate={activeDate}
-            onSelect={setActiveDate}
-            onRemove={removeDataset}
-            importing={importing}
-            onUpload={handleUpload}
-            message={message}
-          />
+          {viewMode === "dashboard" && (
+            <DatasetPicker
+              datasets={datasets}
+              activeDate={activeDate}
+              onSelect={setActiveDate}
+              onRemove={removeDataset}
+              importing={importing}
+              onUpload={handleUpload}
+              message={message}
+            />
+          )}
 
           {/* Right actions */}
           <div className="topbar-actions">
             <LiveClock />
-            <label className="upload-button">
-              <Upload size={15} aria-hidden />
-              <span>{importing ? "Đang đọc..." : "Upload Excel"}</span>
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                disabled={importing}
-                onChange={(e) => {
-                  void handleUpload(e.target.files?.[0]);
-                  e.currentTarget.value = "";
-                }}
-              />
-            </label>
+            {viewMode === "dashboard" && (
+              <label className="upload-button">
+                <Upload size={15} aria-hidden />
+                <span>{importing ? "Đang đọc..." : "Upload Excel"}</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  disabled={importing}
+                  onChange={(e) => {
+                    void handleUpload(e.target.files?.[0]);
+                    e.currentTarget.value = "";
+                  }}
+                />
+              </label>
+            )}
 
             {/* Profile Avatar & Sign Out */}
             {profile && (
@@ -728,6 +745,28 @@ function DashboardContent() {
                 paddingLeft: '16px', 
                 marginLeft: '16px' 
               }}>
+                {/* User Management Button for Admins */}
+                {(profile.role === 'admin' || profile.role === 'superadmin') && (
+                  <button
+                    onClick={() => setViewMode(viewMode === 'dashboard' ? 'users' : 'dashboard')}
+                    className="preset-btn"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      fontSize: '0.78rem',
+                      borderColor: viewMode === 'users' ? 'var(--accent-cyan)' : 'var(--border-subtle)',
+                      background: viewMode === 'users' ? 'rgba(0, 212, 255, 0.06)' : 'transparent',
+                      color: viewMode === 'users' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+                      marginRight: '8px'
+                    }}
+                  >
+                    <Users size={14} />
+                    <span>{viewMode === 'users' ? 'Dashboard' : 'Quản lý Users'}</span>
+                  </button>
+                )}
+
                 <img 
                   src={profile.photoURL} 
                   alt={profile.displayName} 
@@ -768,7 +807,7 @@ function DashboardContent() {
           </div>
         </header>
 
-        {datasets.length > 0 && (
+        {viewMode === "dashboard" && datasets.length > 0 && (
           <>
 
             {/* FILTERS */}
@@ -998,7 +1037,11 @@ function DashboardContent() {
       </div>
 
       {/* ── CONTENT AREA (SCROLLABLE) ── */}
-      {datasets.length > 0 ? (
+      {viewMode === "users" ? (
+        <div className="content-area">
+          <UserManagement onBack={() => setViewMode("dashboard")} />
+        </div>
+      ) : datasets.length > 0 ? (
         <div className="content-area">
           {/* Warnings */}
           {datasets.flatMap((d) => d.warnings).length > 0 && (
