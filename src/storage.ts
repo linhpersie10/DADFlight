@@ -16,14 +16,30 @@ import type { FlightDataset, FlightLeg } from "./types";
 export async function saveDatasetToCloud(dataset: FlightDataset): Promise<void> {
   const datasetRef = doc(db, 'PKT_DAD_datasets', dataset.id);
   
-  // 1. Lưu metadata document (loại bỏ trường records ra để tránh quá tải dung lượng 1MB)
+  // 1. Xóa toàn bộ các leg bay cũ trong subcollection 'legs' nếu có (phục vụ trường hợp upload lại báo cáo)
+  const legsRef = collection(db, 'PKT_DAD_datasets', dataset.id, 'legs');
+  const legsSnap = await getDocs(legsRef);
+  if (!legsSnap.empty) {
+    const docs = legsSnap.docs;
+    const batchSize = 400;
+    for (let i = 0; i < docs.length; i += batchSize) {
+      const chunk = docs.slice(i, i + batchSize);
+      const batch = writeBatch(db);
+      chunk.forEach(d => {
+        batch.delete(d.ref);
+      });
+      await batch.commit();
+    }
+  }
+
+  // 2. Lưu metadata document (loại bỏ trường records ra để tránh quá tải dung lượng 1MB)
   const { records, ...metadata } = dataset;
   await setDoc(datasetRef, {
     ...metadata,
     updatedAt: new Date().toISOString()
   });
   
-  // 2. Lưu các leg bay vào subcollection con dưới dạng chunk 400 tài liệu để tối ưu Firestore write limits
+  // 3. Lưu các leg bay vào subcollection con dưới dạng chunk 400 tài liệu để tối ưu Firestore write limits
   const BATCH_SIZE = 400;
   for (let i = 0; i < records.length; i += BATCH_SIZE) {
     const chunk = records.slice(i, i + BATCH_SIZE);

@@ -50,6 +50,7 @@ export type FlightDataset = {
   reportDate: string;
   fileName: string;
   importedAt: string;
+  updatedAt?: string;
   meta: ReportMeta;
   sourceFlightRows: number;
   legCount: number;

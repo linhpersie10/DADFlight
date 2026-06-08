@@ -37,6 +37,7 @@ import {
 import { parseFlightExcel } from "./excelParser";
 import { saveDatasetToCloud, deleteDatasetFromCloud, fetchDatasetLegs } from "./storage";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { getCache, setCache, deleteCache } from "./dbCache";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "./firebase";
 import { Toaster, toast } from "react-hot-toast";
@@ -62,6 +63,15 @@ const INITIAL_FILTERS: DashboardFilters = {
 };
 
 type TabKey = "market" | "origin" | "airline" | "detail" | "leaderboard";
+
+function getDefaultDateRange(datasets: FlightDataset[]) {
+  if (datasets.length === 0) return { dateFrom: "", dateTo: "" };
+  const uniqueDates = Array.from(new Set(datasets.map(d => d.reportDate))).sort((a, b) => b.localeCompare(a));
+  const dateTo = uniqueDates[0] || "";
+  const targetIndex = Math.min(6, uniqueDates.length - 1);
+  const dateFrom = uniqueDates[targetIndex] || "";
+  return { dateFrom, dateTo };
+}
 
 function kg(value: number): string {
   return formatNumber(value);
@@ -432,6 +442,9 @@ function DashboardContent() {
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
   const observerRef = useRef<ResizeObserver | null>(null);
+  const fetchingDatasetIds = useRef<Set<string>>(new Set());
+  const isInitialFilterSet = useRef(false);
+  const knownDatasetIds = useRef<Set<string>>(new Set());
   const headerRef = useCallback((node: HTMLDivElement | null) => {
     if (observerRef.current) {
       observerRef.current.disconnect();
@@ -468,14 +481,18 @@ function DashboardContent() {
           sourceFlightRows: data.sourceFlightRows,
           legCount: data.legCount,
           warnings: data.warnings || [],
-          records: []
+          records: [],
+          updatedAt: data.updatedAt || ""
         } as FlightDataset;
       });
 
       setDatasets(current => {
         return metaList.map(meta => {
-          const match = current.find(c => c.id === meta.id && c.records.length > 0);
-          return match ? { ...meta, records: match.records } : meta;
+          const match = current.find(c => c.id === meta.id);
+          if (match && match.records.length > 0 && match.updatedAt === meta.updatedAt) {
+            return { ...meta, records: match.records };
+          }
+          return meta;
         });
       });
       setLoadingDatasets(false);
@@ -487,22 +504,53 @@ function DashboardContent() {
     return () => unsubscribe();
   }, []);
 
-  // Load missing legs for datasets reactively
+  // Load missing legs for datasets reactively with Lazy Loading and IndexedDB Caching
   useEffect(() => {
     datasets.forEach(d => {
+      // Lazy load only datasets within the selected date range
+      const inRange = (!filters.dateFrom || d.reportDate >= filters.dateFrom) &&
+                      (!filters.dateTo || d.reportDate <= filters.dateTo);
+      if (!inRange) return;
+
       if (d.records.length === 0) {
-        fetchDatasetLegs(d.id).then(legs => {
-          setDatasets(current => 
-            current.map(item => 
-              item.id === d.id ? { ...item, records: legs } : item
-            )
-          );
-        }).catch(err => {
-          console.error(`[Firestore] Failed to fetch legs for dataset ${d.id}:`, err);
-        });
+        if (fetchingDatasetIds.current.has(d.id)) return;
+        fetchingDatasetIds.current.add(d.id);
+
+        const fetchAndCache = async () => {
+          try {
+            // Check IndexedDB Cache first
+            const cached = await getCache(d.id);
+            if (cached && cached.updatedAt === d.updatedAt) {
+              setDatasets(current => 
+                current.map(item => 
+                  item.id === d.id ? { ...item, records: cached.legs } : item
+                )
+              );
+              fetchingDatasetIds.current.delete(d.id);
+              return;
+            }
+
+            // Cache miss or outdated -> Fetch from Firestore
+            const legs = await fetchDatasetLegs(d.id);
+            // Save to IndexedDB Cache
+            await setCache(d.id, legs, d.updatedAt || "");
+            
+            setDatasets(current => 
+              current.map(item => 
+                item.id === d.id ? { ...item, records: legs } : item
+              )
+            );
+          } catch (err) {
+            console.error(`[Cache/Firestore] Failed to load legs for dataset ${d.id}:`, err);
+          } finally {
+            fetchingDatasetIds.current.delete(d.id);
+          }
+        };
+
+        fetchAndCache();
       }
     });
-  }, [datasets]);
+  }, [datasets, filters.dateFrom, filters.dateTo]);
 
   // Keep activeDate in sync (used only for DatasetPicker display)
   useEffect(() => {
@@ -572,19 +620,51 @@ function DashboardContent() {
     }
   }, [filters.province, provinceOptions]);
 
-  // Expand date range when new dataset is added
+  // Initialize to 7 newest unique reporting days and expand when new datasets are uploaded
   useEffect(() => {
-    if (!dateBounds.min) return;
-    setFilters((f) => ({
-      ...f,
-      dateFrom: f.dateFrom ? (f.dateFrom < dateBounds.min ? f.dateFrom : dateBounds.min) : dateBounds.min,
-      dateTo: f.dateTo ? (f.dateTo > dateBounds.max ? f.dateTo : dateBounds.max) : dateBounds.max,
-    }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateBounds.min, dateBounds.max]);
+    if (loadingDatasets || datasets.length === 0) return;
 
-  const hasActiveDateFilter = (filters.dateFrom && filters.dateFrom !== dateBounds.min) ||
-    (filters.dateTo && filters.dateTo !== dateBounds.max);
+    if (!isInitialFilterSet.current) {
+      const { dateFrom, dateTo } = getDefaultDateRange(datasets);
+      setFilters(f => ({ ...f, dateFrom, dateTo }));
+      isInitialFilterSet.current = true;
+      knownDatasetIds.current = new Set(datasets.map(d => d.id));
+    } else {
+      // Sync knownDatasetIds with current datasets list to handle deletions
+      const currentIds = new Set(datasets.map(d => d.id));
+      for (const id of knownDatasetIds.current) {
+        if (!currentIds.has(id)) {
+          knownDatasetIds.current.delete(id);
+        }
+      }
+
+      let addedAny = false;
+      let minDate = "";
+      let maxDate = "";
+
+      datasets.forEach(d => {
+        if (!knownDatasetIds.current.has(d.id)) {
+          addedAny = true;
+          knownDatasetIds.current.add(d.id);
+          if (!minDate || d.reportDate < minDate) minDate = d.reportDate;
+          if (!maxDate || d.reportDate > maxDate) maxDate = d.reportDate;
+        }
+      });
+
+      if (addedAny) {
+        setFilters(f => ({
+          ...f,
+          dateFrom: f.dateFrom ? (minDate && minDate < f.dateFrom ? minDate : f.dateFrom) : minDate,
+          dateTo: f.dateTo ? (maxDate && maxDate > f.dateTo ? maxDate : f.dateTo) : maxDate,
+        }));
+      }
+    }
+  }, [loadingDatasets, datasets]);
+
+  const defaultDateRange = useMemo(() => getDefaultDateRange(datasets), [datasets]);
+
+  const hasActiveDateFilter = (filters.dateFrom && filters.dateFrom !== defaultDateRange.dateFrom) ||
+    (filters.dateTo && filters.dateTo !== defaultDateRange.dateTo);
   const hasActiveFilters = hasActiveDateFilter || filters.direction !== "all" || filters.airline || filters.origin || filters.country || filters.province || filters.search || filters.flightScope !== "all";
 
   async function handleUpload(file: File | undefined) {
@@ -620,6 +700,7 @@ function DashboardContent() {
     try {
       toast.loading('Đang xóa dữ liệu khỏi Firestore...', { id: 'delete-dataset' });
       await deleteDatasetFromCloud(target.id);
+      await deleteCache(target.id);
       toast.success('Xóa dữ liệu thành công!', { id: 'delete-dataset' });
     } catch (err) {
       console.error(err);
@@ -906,7 +987,8 @@ function DashboardContent() {
                       type="button" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
+                        const { dateFrom, dateTo } = getDefaultDateRange(datasets);
+                        setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom, dateTo }));
                       }}
                     >
                       <X size={10} style={{ display: "inline", marginRight: 3 }} />
@@ -991,11 +1073,15 @@ function DashboardContent() {
                             type="button"
                             className="preset-btn"
                             onClick={() => {
-                              setFilters((f) => ({ ...f, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
+                              const { dateFrom, dateTo } = getDefaultDateRange(datasets);
+                              setFilters((f) => ({ ...f, dateFrom, dateTo }));
                             }}
-                            disabled={!hasActiveDateFilter}
+                            disabled={(() => {
+                              const { dateFrom, dateTo } = getDefaultDateRange(datasets);
+                              return filters.dateFrom === dateFrom && filters.dateTo === dateTo;
+                            })()}
                           >
-                            Mặc định (Toàn bộ)
+                            Mặc định (7 ngày gần nhất)
                           </button>
                           {dateBounds.max && (
                             <button
@@ -1009,6 +1095,16 @@ function DashboardContent() {
                               Ngày mới nhất
                             </button>
                           )}
+                          <button
+                            type="button"
+                            className="preset-btn"
+                            onClick={() => {
+                              setFilters((f) => ({ ...f, dateFrom: dateBounds.min, dateTo: dateBounds.max }));
+                            }}
+                            disabled={filters.dateFrom === dateBounds.min && filters.dateTo === dateBounds.max}
+                          >
+                            Toàn bộ thời gian
+                          </button>
                         </div>
                       </div>
                     )}

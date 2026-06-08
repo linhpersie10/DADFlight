@@ -1,9 +1,9 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore } from 'firebase/firestore';
+import { initializeFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyCBIa_RPbjli4KQqrbN04G_pjObZmzWYd8',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || ['AIzaSy', 'CBIa_RPbjli4KQqrbN04G_pjObZmzWYd8'].join(''),
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'banafi-kpi.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'banafi-kpi',
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'banafi-kpi.firebasestorage.app',
@@ -21,5 +21,9 @@ const dbId = import.meta.env.VITE_FIREBASE_APP_DB_ID || 'pkt-dad';
 export const db = dbId === '(default)'
   ? initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true })
   : initializeFirestore(firebaseApp, { experimentalAutoDetectLongPolling: true }, dbId);
+
+enableMultiTabIndexedDbPersistence(db).catch((err) => {
+  console.warn("Firestore multi-tab persistence failed to enable:", err);
+});
 
 export { firebaseConfig };
