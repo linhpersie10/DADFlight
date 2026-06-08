@@ -252,26 +252,26 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
             {rows.map((row, index) => {
               const width = maxPassengers ? Math.max(4, Math.round((row.passengers / maxPassengers) * 100)) : 0;
               return (
-                <tr key={row.key}>
-                  <td><span className="row-rank">{index + 1}</span></td>
-                  <td>
+                <tr key={row.key} className="mobile-card-row">
+                  <td data-label="#"><span className="row-rank">{index + 1}</span></td>
+                  <td data-label="Điểm">
                     <div className="main-cell">{row.label}</div>
                     <div className="muted">{row.subLabel}</div>
                   </td>
-                  <td style={{ fontSize: "0.82rem" }}>{row.country || "—"}</td>
-                  <td style={{ fontSize: "0.82rem" }}>{row.province || "—"}</td>
-                  <td className="number">{formatNumber(row.flightCount)}</td>
-                  <td className="number">{formatNumber(row.arrivals)}</td>
-                  <td className="number">{formatNumber(row.departures)}</td>
-                  <td className="number with-bar">
+                  <td data-label="Quốc gia" style={{ fontSize: "0.82rem" }}>{row.country || "—"}</td>
+                  <td data-label="Tỉnh/TP" style={{ fontSize: "0.82rem" }}>{row.province || "—"}</td>
+                  <td data-label="Chuyến" className="number">{formatNumber(row.flightCount)}</td>
+                  <td data-label="Đến" className="number">{formatNumber(row.arrivals)}</td>
+                  <td data-label="Đi" className="number">{formatNumber(row.departures)}</td>
+                  <td data-label="Khách" className="number with-bar">
                     <span style={{ fontWeight: 700 }}>{formatNumber(row.passengers)}</span>
                     <span className="bar-track">
                       <span className="bar-fill" style={{ width: `${width}%` }} />
                     </span>
                   </td>
-                  <td className="number">{kg(row.baggageKg)}</td>
-                  <td className="number">{kg(row.parcelKg)}</td>
-                  <td className="number">{kg(row.cargoKg)}</td>
+                  <td data-label="Hành lý" className="number">{kg(row.baggageKg)}</td>
+                  <td data-label="Bưu kiện" className="number">{kg(row.parcelKg)}</td>
+                  <td data-label="Hàng hóa" className="number">{kg(row.cargoKg)}</td>
                 </tr>
               );
             })}
@@ -337,31 +337,31 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
           </thead>
           <tbody>
             {flightsWithCapacity.map(({ leg, capacity, occupancy }) => (
-              <tr key={leg.id}>
-                <td style={{ fontSize: "0.8rem", fontVariantNumeric: "tabular-nums" }}>{formatDate(leg.reportDate)}</td>
-                <td style={{ fontWeight: 700, fontSize: "0.85rem" }}>{leg.airline}</td>
-                <td>
+              <tr key={leg.id} className="mobile-card-row">
+                <td data-label="Ngày" style={{ fontSize: "0.8rem", fontVariantNumeric: "tabular-nums" }}>{formatDate(leg.reportDate)}</td>
+                <td data-label="Hãng" style={{ fontWeight: 700, fontSize: "0.85rem" }}>{leg.airline}</td>
+                <td data-label="Số hiệu">
                   <div className="main-cell">{leg.flightNo}</div>
                   {leg.originalFlightNo !== leg.flightNo && (
                     <div className="muted">Gốc: {leg.originalFlightNo}</div>
                   )}
                 </td>
-                <td>
+                <td data-label="Chặng leg">
                   <div className="main-cell">{leg.route}</div>
                   {leg.originalRoute !== leg.route && (
                     <div className="muted">Từ {leg.originalRoute}</div>
                   )}
                 </td>
-                <td>
+                <td data-label="Chiều">
                   <span className={`direction-pill ${leg.direction}`}>
                     {leg.direction === "arrival" ? "↓ Đến DAD" : "↑ Đi từ DAD"}
                   </span>
                 </td>
-                <td style={{ fontSize: "0.82rem" }}>{leg.aircraftType}</td>
-                <td className="number" style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>
+                <td data-label="Loại MB" style={{ fontSize: "0.82rem" }}>{leg.aircraftType}</td>
+                <td data-label="Sức chứa" className="number" style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>
                   {capacity ? formatNumber(capacity) : "—"}
                 </td>
-                <td className="number">
+                <td data-label="Lấp đầy" className="number">
                   {occupancy !== null ? (
                     <span className={`occupancy-badge ${
                       occupancy < 50 ? "low" : occupancy < 75 ? "medium" : occupancy < 90 ? "good" : "high"
@@ -372,15 +372,15 @@ function DetailTable({ records }: { records: FlightLeg[] }) {
                     "—"
                   )}
                 </td>
-                <td className="number" style={{ fontWeight: 700 }}>{formatNumber(leg.passengerTotal)}</td>
-                <td className="number">{formatNumber(leg.adult)}</td>
-                <td className="number">{formatNumber(leg.child)}</td>
-                <td className="number">{formatNumber(leg.infant)}</td>
-                <td className="number">{kg(leg.baggageKg)}</td>
-                <td className="number">{kg(leg.parcelKg)}</td>
-                <td className="number">{kg(leg.cargoKg)}</td>
-                <td className="number">{transit(leg.transitKg)}</td>
-                <td style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>#{leg.sourceRow}</td>
+                <td data-label="Khách" className="number" style={{ fontWeight: 700 }}>{formatNumber(leg.passengerTotal)}</td>
+                <td data-label="ADL" className="number">{formatNumber(leg.adult)}</td>
+                <td data-label="CHD" className="number">{formatNumber(leg.child)}</td>
+                <td data-label="INF" className="number">{formatNumber(leg.infant)}</td>
+                <td data-label="Hành lý" className="number">{kg(leg.baggageKg)}</td>
+                <td data-label="Bưu kiện" className="number">{kg(leg.parcelKg)}</td>
+                <td data-label="Hàng hóa" className="number">{kg(leg.cargoKg)}</td>
+                <td data-label="Transit" className="number">{transit(leg.transitKg)}</td>
+                <td data-label="Dòng gốc" style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>#{leg.sourceRow}</td>
               </tr>
             ))}
             {!records.length && (
@@ -428,6 +428,7 @@ function DashboardContent() {
   const [viewMode, setViewMode] = useState<"dashboard" | "users">("dashboard");
   const [isDateFilterExpanded, setIsDateFilterExpanded] = useState(false);
   const [isFilterPanelExpanded, setIsFilterPanelExpanded] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -791,6 +792,17 @@ function DashboardContent() {
               </label>
             )}
 
+            {/* Mobile Filter Toggle */}
+            {viewMode === "dashboard" && datasets.length > 0 && (
+              <button 
+                className="mobile-filter-toggle preset-btn"
+                onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
+              >
+                <Filter size={15} />
+                <span>Bộ lọc {hasActiveFilters ? "(1)" : ""}</span>
+              </button>
+            )}
+
             {/* Profile Avatar & Sign Out */}
             {profile && (
               <div className="topbar-profile" style={{ 
@@ -867,10 +879,15 @@ function DashboardContent() {
           <>
 
             {/* FILTERS */}
-            <section className={`filter-panel ${isFilterPanelExpanded ? "is-expanded" : "is-collapsed"} ${hasActiveFilters ? "has-active-filters" : ""}`}>
+            {/* On mobile, we use isMobileFilterOpen to expand. On desktop, we use isFilterPanelExpanded. */}
+            {/* The CSS handles showing/hiding based on is-expanded and is-collapsed, plus media queries. */}
+            <section className={`filter-panel ${isFilterPanelExpanded || isMobileFilterOpen ? "is-expanded" : "is-collapsed"} ${hasActiveFilters ? "has-active-filters" : ""}`}>
               <div 
                 className="filter-header"
-                onClick={() => setIsFilterPanelExpanded(!isFilterPanelExpanded)}
+                onClick={() => {
+                  setIsFilterPanelExpanded(!isFilterPanelExpanded);
+                  setIsMobileFilterOpen(!isMobileFilterOpen);
+                }}
                 style={{ cursor: "pointer", userSelect: "none" }}
               >
                 <div className="panel-title" style={{ marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
