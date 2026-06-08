@@ -1301,14 +1301,75 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   .upload-button { justify-content: center; }
   .report-bar { flex-direction: column; gap: 8px; }
   .report-meta { text-align: left; }
-  .score-grid { grid-template-columns: repeat(2, 1fr); }
+  .score-grid { 
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+    margin-right: -12px;
+    padding-right: 12px;
+  }
+  .score-card {
+    min-width: 260px;
+    scroll-snap-align: center;
+    flex-shrink: 0;
+  }
+  .tabbar { 
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .tabbar::-webkit-scrollbar { display: none; }
+  .tabbar button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
   .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .topbar-clock { display: none; }
+  
+  /* Make first columns of tables sticky on mobile */
+  .table-wrap th:first-child,
+  .table-wrap td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: var(--bg-card);
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  }
+  
+  /* Specific override for SummaryTable since # column is too thin, stick the second column too */
+  .table-wrap th:nth-child(2),
+  .table-wrap td:nth-child(2) {
+    position: sticky;
+    left: 36px;
+    z-index: 10;
+    background: var(--bg-card);
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  }
+  
+  /* Detail table uses normal first child sticky, so reset the second child for it */
+  .detail-table th:nth-child(2),
+  .detail-table td:nth-child(2) {
+    position: static;
+    box-shadow: none;
+  }
+  
+  .table-wrap th:first-child,
+  .table-wrap th:nth-child(2) {
+    z-index: 85; /* above other headers and sticky cols */
+  }
+  .detail-table th:nth-child(2) {
+    z-index: auto;
+  }
 }
 
 @media (max-width: 480px) {
-  .score-grid { grid-template-columns: 1fr; }
   .filters-grid { grid-template-columns: 1fr; }
+  th, td { padding: 8px 10px; font-size: 0.75rem; }
+  .number { font-size: 0.8rem; }
 }
 
 /* ── STICKY CONTROL CENTER STYLES ── */
