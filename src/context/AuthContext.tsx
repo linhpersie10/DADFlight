@@ -19,7 +19,9 @@ import {
   serverTimestamp, 
   onSnapshot, 
   arrayUnion, 
-  deleteField 
+  deleteField,
+  collection,
+  addDoc
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { UserProfile } from '../types';
@@ -150,6 +152,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               status: 'approved',
               updatedAt: serverTimestamp(),
             });
+          }
+
+          // Record access history
+          const accessRecordedKey = `pkt_dad_access_recorded_${currentUser.uid}`;
+          if (!sessionStorage.getItem(accessRecordedKey)) {
+            try {
+              const accessRef = collection(db, 'PKT_DAD_users', currentUser.uid, 'access_history');
+              await addDoc(accessRef, {
+                timestamp: serverTimestamp(),
+                userAgent: navigator.userAgent
+              });
+              await updateDoc(userRef, {
+                lastLoginAt: serverTimestamp()
+              });
+              sessionStorage.setItem(accessRecordedKey, 'true');
+            } catch (err) {
+              console.error('[Auth] Failed to record access history:', err);
+            }
           }
 
           // Real-time listener for profile changes

@@ -8,7 +8,11 @@ import {
   updateDoc, 
   deleteDoc,
   deleteField,
-  serverTimestamp 
+  serverTimestamp,
+  query,
+  orderBy,
+  limit,
+  getDocs 
 } from 'firebase/firestore';
 import { 
   Search, 
@@ -27,12 +31,13 @@ import { UserProfile } from '../types';
 import { toast } from 'react-hot-toast';
 
 export default function UserManagement({ onBack }: { onBack: () => void }) {
-  const { profile, isSuperAdmin } = useAuth();
+  const { profile, isSuperAdmin, isAdmin } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, uid: string, userName: string }>({ isOpen: false, uid: '', userName: '' });
 
   useEffect(() => {
     const q = collection(db, 'PKT_DAD_users');
@@ -144,6 +149,10 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
       console.error("Error resetting PIN:", error);
       toast.error("Lỗi khi đặt lại mã PIN.");
     }
+  };
+
+  const handleViewHistory = (uid: string, userName: string) => {
+    setHistoryModal({ isOpen: true, uid, userName });
   };
 
   // Stats calculation
@@ -276,6 +285,8 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
                 <th style={{ textAlign: 'left', padding: '12px 16px' }}>Ngày tham gia</th>
                 <th style={{ textAlign: 'left', padding: '12px 16px' }}>Vai trò</th>
                 <th style={{ textAlign: 'center', padding: '12px 16px', width: '120px' }}>Trạng thái</th>
+                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Data Collection</th>
+                <th style={{ textAlign: 'center', padding: '12px 16px', width: '140px' }}>Lịch sử truy cập</th>
                 <th style={{ textAlign: 'center', padding: '12px 16px', width: '100px' }}>Bảo mật PIN</th>
                 <th style={{ textAlign: 'right', padding: '12px 16px', width: '220px' }}>Thao tác</th>
               </tr>
@@ -356,6 +367,34 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
                       </span>
                     </td>
 
+                    {/* Data Collection */}
+                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }} title="Data Collection - Firebase UID">
+                          PKT_DAD_users/{u.uid}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Access History */}
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {u.lastLoginAt ? (u.lastLoginAt.toDate ? u.lastLoginAt.toDate().toLocaleDateString("vi-VN") : new Date(u.lastLoginAt).toLocaleDateString("vi-VN")) : "Chưa có"}
+                        </span>
+                        {isAdmin && (
+                          <button 
+                            onClick={() => handleViewHistory(u.uid, u.displayName)}
+                            className="preset-btn"
+                            style={{ padding: '2px 8px', fontSize: '0.7rem', background: 'rgba(0, 212, 255, 0.08)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 212, 255, 0.2)' }}
+                            title="Xem chi tiết lịch sử"
+                          >
+                            Xem lịch sử
+                          </button>
+                        )}
+                      </div>
+                    </td>
+
                     {/* PIN status */}
                     <td style={{ padding: '12px 16px', textAlign: 'center', color: u.hasPin ? 'var(--accent-green)' : 'var(--text-muted)' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
@@ -414,6 +453,91 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
               })}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {historyModal.isOpen && (
+        <AccessHistoryModal 
+          uid={historyModal.uid} 
+          userName={historyModal.userName} 
+          onClose={() => setHistoryModal({ ...historyModal, isOpen: false })} 
+        />
+      )}
+    </div>
+  );
+}
+
+function AccessHistoryModal({ uid, userName, onClose }: { uid: string, userName: string, onClose: () => void }) {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const q = query(
+          collection(db, 'PKT_DAD_users', uid, 'access_history'),
+          orderBy('timestamp', 'desc'),
+          limit(30)
+        );
+        const snap = await getDocs(q);
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setHistory(data);
+      } catch (err) {
+        console.error(err);
+        toast.error('Lỗi khi tải lịch sử truy cập');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [uid]);
+
+  return (
+    <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }} onClick={onClose}>
+      <div className="modal-content" style={{ background: 'var(--bg-panel)', padding: '20px', borderRadius: 'var(--radius-lg)', width: '90%', maxWidth: '500px', border: '1px solid var(--border-subtle)' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Lịch sử truy cập - {userName}</h3>
+          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+            <X size={20} />
+          </button>
+        </div>
+        
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div className="spinner" style={{ margin: '0 auto' }} />
+          </div>
+        ) : history.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+            Không có dữ liệu truy cập.
+          </div>
+        ) : (
+          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Thời gian</th>
+                  <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Thiết bị / Trình duyệt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map(item => {
+                  let timeStr = '—';
+                  if (item.timestamp) {
+                    const d = item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
+                    timeStr = d.toLocaleString('vi-VN');
+                  }
+                  return (
+                    <tr key={item.id}>
+                      <td style={{ padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}>{timeStr}</td>
+                      <td style={{ padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.userAgent}>
+                        {item.userAgent || 'Không xác định'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

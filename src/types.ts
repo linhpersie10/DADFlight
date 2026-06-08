@@ -99,6 +99,7 @@ export interface UserProfile {
   hasPin?: boolean; // True if PIN is set
   role?: 'admin' | 'user' | 'superadmin';
   status?: 'approved' | 'pending' | 'rejected';
+  lastLoginAt?: any;
   createdAt: any;
   updatedAt: any;
 }
