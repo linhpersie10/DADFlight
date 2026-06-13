@@ -4,7 +4,7 @@ import { initializeFirestore, enableMultiTabIndexedDbPersistence } from 'firebas
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || ['AIzaSy', 'CBIa_RPbjli4KQqrbN04G_pjObZmzWYd8'].join(''),
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'banafi-kpi.firebaseapp.com',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'banafi-kpi.web.app',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'banafi-kpi',
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'banafi-kpi.firebasestorage.app',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '176320092517',
