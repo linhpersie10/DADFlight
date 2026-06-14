@@ -1601,6 +1601,7 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
 
 /* ── AUTHENTICATION STYLES (Zero-Trust Pages) ── */
 .auth-screen {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;

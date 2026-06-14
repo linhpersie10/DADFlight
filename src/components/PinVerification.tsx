@@ -148,7 +148,7 @@ export default function PinVerification() {
 
   return (
     <div className="auth-screen">
-      <div className="absolute" style={{ right: 24, top: 24, zIndex: 100 }}>
+      <div style={{ position: 'absolute', right: 24, top: 24, zIndex: 100 }}>
         <button
           onClick={logout}
           className="auth-btn-secondary"
