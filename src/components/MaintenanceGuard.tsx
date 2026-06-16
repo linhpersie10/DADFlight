@@ -21,10 +21,16 @@ export const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ db, auth, ch
       return;
     }
 
+    const connectionTimeout = setTimeout(() => {
+      console.warn('[MaintenanceGuard] Connection to maintenance document timed out. Falling back to active.');
+      setLoading(false);
+    }, 3500);
+
     const docRef = doc(db, 'system_settings', 'maintenance');
     const unsubscribeDoc = onSnapshot(
       docRef,
       (snapshot) => {
+        clearTimeout(connectionTimeout);
         if (snapshot.exists()) {
           const data = snapshot.data();
           setIsLocked(!!data.isLocked);
@@ -34,13 +40,17 @@ export const MaintenanceGuard: React.FC<MaintenanceGuardProps> = ({ db, auth, ch
         setLoading(false);
       },
       (error) => {
+        clearTimeout(connectionTimeout);
         console.warn('Error listening to maintenance status, using fallback inactive:', error);
         setIsLocked(false);
         setLoading(false);
       }
     );
 
-    return () => unsubscribeDoc();
+    return () => {
+      clearTimeout(connectionTimeout);
+      unsubscribeDoc();
+    };
   }, [db]);
 
   useEffect(() => {
