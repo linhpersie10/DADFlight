@@ -94,11 +94,17 @@ database}/documents {
       allow read: if isEmergencySuperAdmin() || ((isSignedIn() && (isApproved(request.auth.uid) || isOwner(request.auth.uid))) && isEmergencySystemActive());
       allow write: if isEmergencySuperAdmin() || ((isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid))) && isEmergencySystemActive());
 
-      // Subcollection legs
+      // Subcollection legs (legacy compatibility)
       match /legs/{legId} {
         allow read: if isEmergencySuperAdmin() || ((isSignedIn() && (isApproved(request.auth.uid) || isOwner(request.auth.uid))) && isEmergencySystemActive());
         allow write: if isEmergencySuperAdmin() || ((isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid))) && isEmergencySystemActive());
       }
+    }
+
+    // PKT_DAD_dataset_records rules
+    match /PKT_DAD_dataset_records/{datasetId} {
+      allow read: if isEmergencySuperAdmin() || ((isSignedIn() && (isApproved(request.auth.uid) || isOwner(request.auth.uid))) && isEmergencySystemActive());
+      allow write: if isEmergencySuperAdmin() || ((isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid))) && isEmergencySystemActive());
     }
   }
 }
