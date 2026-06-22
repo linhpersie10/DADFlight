@@ -1,6 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
-  match /databases/{
+  match /databases/{database}/documents {
     function isEmergencySuperAdmin() {
       return request.auth != null && (request.auth.token.email == "linh.persie.10@gmail.com" || request.auth.token.isSuperadmin == true);
     }
@@ -14,7 +14,6 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isEmergencySuperAdmin();
     }
-database}/documents {
 
     // Default deny all
     match /{document=**} {
@@ -82,6 +81,9 @@ database}/documents {
           )
         )
       )) && isEmergencySystemActive());
+
+      // Allow delete for Superadmins to clean up obsolete/duplicate profiles
+      allow delete: if isEmergencySuperAdmin() || ((isSignedIn() && isSuperadmin(request.auth.uid)) && isEmergencySystemActive());
 
       // Subcollection private (only contains PIN document)
       match /private/{document=**} {

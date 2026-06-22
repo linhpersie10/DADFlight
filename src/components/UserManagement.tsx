@@ -25,7 +25,8 @@ import {
   ArrowLeft,
   Clock,
   UserCheck,
-  UserX
+  UserX,
+  Trash2
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { toast } from 'react-hot-toast';
@@ -148,6 +149,40 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
     } catch (error) {
       console.error("Error resetting PIN:", error);
       toast.error("Lỗi khi đặt lại mã PIN.");
+    }
+  };
+
+  const handleDeleteUser = async (uid: string) => {
+    const targetUser = users.find(u => u.uid === uid);
+    if (!targetUser) return;
+
+    if (targetUser.email === 'linh.persie.10@gmail.com') {
+      toast.error("Không thể xóa Super Admin mặc định.");
+      return;
+    }
+
+    if (!isSuperAdmin) {
+      toast.error("Chỉ Super Admin mới có quyền xóa tài khoản.");
+      return;
+    }
+
+    if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản của ${targetUser.displayName} (${targetUser.email}) khỏi Firestore? Hành động này không thể hoàn tác!`)) {
+      return;
+    }
+
+    try {
+      // 1. Delete private subcollection (PIN document)
+      const secretRef = doc(db, 'PKT_DAD_users', uid, 'private', 'pin');
+      await deleteDoc(secretRef).catch(() => {}); // ignore if it doesn't exist
+
+      // 2. Delete main user document
+      const userRef = doc(db, 'PKT_DAD_users', uid);
+      await deleteDoc(userRef);
+
+      toast.success('Đã xóa tài khoản thành công!');
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast.error("Lỗi khi xóa tài khoản.");
     }
   };
 
@@ -444,6 +479,19 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
                           >
                             <Key size={12} />
                             <span>Reset PIN</span>
+                          </button>
+                        )}
+
+                        {/* Delete User button (Super Admin only) */}
+                        {isSuperAdmin && showActions && (
+                          <button 
+                            onClick={() => handleDeleteUser(u.uid)} 
+                            className="preset-btn"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: 'var(--accent-red)', background: 'rgba(239, 68, 68, 0.04)' }}
+                            title="Xóa vĩnh viễn tài khoản này khỏi Firestore"
+                          >
+                            <Trash2 size={12} />
+                            <span>Xóa</span>
                           </button>
                         )}
                       </div>
