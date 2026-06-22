@@ -103,5 +103,6 @@ export interface UserProfile {
   lastLoginAt?: any;
   createdAt: any;
   updatedAt: any;
+  migratedFrom?: string;
 }
 

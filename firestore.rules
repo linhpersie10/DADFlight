@@ -55,12 +55,27 @@ service cloud.firestore {
 
       // Allow users to create their own profile initially
       allow create: if isEmergencySuperAdmin() || ((isOwner(userId) &&
-        // Prevent self-promotion (case-insensitive email comparison):
-        request.resource.data.role == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com' ? 'superadmin' : 'user') &&
-        request.resource.data.status == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com' ? 'approved' : 'pending') &&
-        request.resource.data.isApproved == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
-        request.resource.data.isAdmin == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
-        request.resource.data.isSuperadmin == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
+        // Case 1: Standard new user creation
+        (
+          (
+            request.resource.data.role == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com' ? 'superadmin' : 'user') &&
+            request.resource.data.status == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com' ? 'approved' : 'pending') &&
+            request.resource.data.isApproved == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
+            request.resource.data.isAdmin == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com') &&
+            request.resource.data.isSuperadmin == (request.resource.data.email.lower() == 'linh.persie.10@gmail.com')
+          ) ||
+          // Case 2: Self-migration from a duplicate user profile with matching email
+          (
+            request.resource.data.migratedFrom != null &&
+            exists(/databases/$(database)/documents/PKT_DAD_users/$(request.resource.data.migratedFrom)) &&
+            get(/databases/$(database)/documents/PKT_DAD_users/$(request.resource.data.migratedFrom)).data.email.lower() == request.auth.token.email.lower() &&
+            request.resource.data.role == get(/databases/$(database)/documents/PKT_DAD_users/$(request.resource.data.migratedFrom)).data.role &&
+            request.resource.data.status == get(/databases/$(database)/documents/PKT_DAD_users/$(request.resource.data.migratedFrom)).data.status &&
+            request.resource.data.isApproved == get(/databases/$(database)/documents/PKT_DAD_users/$(request.resource.data.migratedFrom)).data.isApproved &&
+            request.resource.data.isAdmin == get(/databases/$(database)/documents/PKT_DAD_users/$(request.resource.data.migratedFrom)).data.isAdmin &&
+            request.resource.data.isSuperadmin == get(/databases/$(database)/documents/PKT_DAD_users/$(request.resource.data.migratedFrom)).data.isSuperadmin
+          )
+        ) &&
         request.resource.data.email.lower() == request.auth.token.email.lower()) && isEmergencySystemActive());
 
       // Allow updates:
@@ -82,8 +97,13 @@ service cloud.firestore {
         )
       )) && isEmergencySystemActive());
 
-      // Allow delete for Superadmins to clean up obsolete/duplicate profiles
-      allow delete: if isEmergencySuperAdmin() || ((isSignedIn() && isSuperadmin(request.auth.uid)) && isEmergencySystemActive());
+      // Allow delete for:
+      // 1. Superadmins to clean up obsolete/duplicate profiles
+      // 2. Users to delete their own old/duplicate profiles (based on matching email)
+      allow delete: if isEmergencySuperAdmin() || (((
+        (isSignedIn() && isSuperadmin(request.auth.uid)) ||
+        (isSignedIn() && resource.data.email.lower() == request.auth.token.email.lower())
+      )) && isEmergencySystemActive());
 
       // Subcollection private (only contains PIN document)
       match /private/{document=**} {

@@ -21,7 +21,10 @@ import {
   arrayUnion, 
   deleteField,
   collection,
-  addDoc
+  addDoc,
+  query,
+  where,
+  getDocs
 } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { UserProfile } from '../types';
@@ -125,22 +128,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userSnap = await getDoc(userRef);
 
           if (!userSnap.exists()) {
-            const newProfile = {
-              uid: currentUser.uid,
-              email: (currentUser.email || '').toLowerCase().trim(),
-              displayName: currentUser.displayName || '',
-              photoURL: currentUser.photoURL || '',
-              isApproved: isSuperAdminEmail,
-              isAdmin: isSuperAdminEmail,
-              isSuperadmin: isSuperAdminEmail,
-              isRejected: false,
-              role: isSuperAdminEmail ? 'superadmin' : 'user',
-              status: isSuperAdminEmail ? 'approved' : 'pending',
-              createdAt: serverTimestamp(),
-              updatedAt: serverTimestamp(),
-              requestedApps: ['dadflight'],
-            };
-            await setDoc(userRef, newProfile);
+            const emailLower = (currentUser.email || '').toLowerCase().trim();
+            const usersRef = collection(db, 'PKT_DAD_users');
+            const q = query(usersRef, where('email', '==', emailLower));
+            const querySnap = await getDocs(q);
+
+            let oldProfileData: any = null;
+            let oldDocId: string | null = null;
+
+            querySnap.forEach((docSnap) => {
+              if (docSnap.id !== currentUser.uid) {
+                oldProfileData = docSnap.data();
+                oldDocId = docSnap.id;
+              }
+            });
+
+            if (oldProfileData) {
+              console.log(`[Auth] Migrating profile from old UID ${oldDocId} to new UID ${currentUser.uid}`);
+              const newProfile = {
+                uid: currentUser.uid,
+                email: emailLower,
+                displayName: currentUser.displayName || oldProfileData.displayName || '',
+                photoURL: currentUser.photoURL || oldProfileData.photoURL || '',
+                isApproved: oldProfileData.isApproved ?? isSuperAdminEmail,
+                isAdmin: oldProfileData.isAdmin ?? isSuperAdminEmail,
+                isSuperadmin: oldProfileData.isSuperadmin ?? isSuperAdminEmail,
+                isRejected: oldProfileData.isRejected ?? false,
+                role: oldProfileData.role ?? (isSuperAdminEmail ? 'superadmin' : 'user'),
+                status: oldProfileData.status ?? (isSuperAdminEmail ? 'approved' : 'pending'),
+                createdAt: oldProfileData.createdAt || serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                requestedApps: oldProfileData.requestedApps || ['dadflight'],
+                hasPin: oldProfileData.hasPin || false,
+                migratedFrom: oldDocId,
+              };
+              await setDoc(userRef, newProfile);
+              
+              // Delete the old duplicate user document to avoid double users
+              try {
+                await deleteDoc(doc(db, 'PKT_DAD_users', oldDocId!));
+                console.log(`[Auth] Successfully deleted old user document ${oldDocId}`);
+              } catch (delErr) {
+                console.error('[Auth] Failed to delete old user document:', delErr);
+              }
+            } else {
+              const newProfile = {
+                uid: currentUser.uid,
+                email: emailLower,
+                displayName: currentUser.displayName || '',
+                photoURL: currentUser.photoURL || '',
+                isApproved: isSuperAdminEmail,
+                isAdmin: isSuperAdminEmail,
+                isSuperadmin: isSuperAdminEmail,
+                isRejected: false,
+                role: isSuperAdminEmail ? 'superadmin' : 'user',
+                status: isSuperAdminEmail ? 'approved' : 'pending',
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                requestedApps: ['dadflight'],
+              };
+              await setDoc(userRef, newProfile);
+            }
           } else if (isSuperAdminEmail) {
             // Ensure superadmin flags are always set
             await updateDoc(userRef, {
