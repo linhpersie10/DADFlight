@@ -1,0 +1,324 @@
+{"users": [
+{
+  "localId": "3EUj3JPoK0cjQMqayD4UqxbeEal2",
+  "email": "linh.persie.10@gmail.com",
+  "emailVerified": true,
+  "displayName": "Linh Bùi",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIayaPq5WCMYbnX0Wjx6p7SFdRNSYRIYk2Qw_R0v_oiBY7qRuD3=s96-c",
+  "lastSignedInAt": "1782096339407",
+  "createdAt": "1773827963891",
+  "customAttributes": "{\"gt_role\":\"admin\",\"gt_isSuperadmin\":true,\"gt_hasPin\":true,\"gt_status\":\"approved\",\"rev_role\":\"admin\",\"rev_isSuperadmin\":true,\"rev_hasPin\":true,\"rev_status\":\"approved\",\"sco_role\":\"pending\",\"sco_admin\":false,\"sco_isSuperadmin\":true,\"sco_status\":\"pending\",\"sco_hasPin\":true,\"skb_role\":\"super_admin\",\"skb_admin\":true,\"skb_isSuperadmin\":true,\"skb_status\":\"active\",\"skb_email\":\"linh.persie.10@gmail.com\",\"skb_updatedAt\":1782070994073,\"role\":\"super_admin\",\"admin\":true,\"isSuperadmin\":true,\"status\":\"active\",\"email\":\"linh.persie.10@gmail.com\",\"updatedAt\":1782070994073}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "116090721424890293302",
+      "email": "linh.persie.10@gmail.com",
+      "displayName": "Linh Bùi",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIayaPq5WCMYbnX0Wjx6p7SFdRNSYRIYk2Qw_R0v_oiBY7qRuD3=s96-c"
+    }
+  ]
+},
+{
+  "localId": "4kaQ1Ppt2CQhENDVIC1nXc2jL6F2",
+  "email": "khoa.huynh.06.12.2000@gmail.com",
+  "emailVerified": true,
+  "displayName": "Huỳnh Đăng Khoa",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJETi8B-5qdi4jRyqzrWROARzIymaqxVGhQbaSxXtWOJoSBCjM=s96-c",
+  "lastSignedInAt": "1781876358581",
+  "createdAt": "1781876358580",
+  "customAttributes": "{\"createdAt\":\"2026-06-19T13:39:24.092Z\",\"gt_role\":\"user\",\"gt_isSuperadmin\":false,\"gt_hasPin\":false,\"gt_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "116770286699962768702",
+      "email": "khoa.huynh.06.12.2000@gmail.com",
+      "displayName": "Huỳnh Đăng Khoa",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJETi8B-5qdi4jRyqzrWROARzIymaqxVGhQbaSxXtWOJoSBCjM=s96-c"
+    }
+  ]
+},
+{
+  "localId": "5lO3oKUn9vdCjkWxZVcEFKd21M42",
+  "email": "nguyendacsang1801@gmail.com",
+  "emailVerified": true,
+  "displayName": "Đắc Sang Nguyễn",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJd7vpkCywdWrCOXOpElSZEp4dhXGeKAmS-2kZ8mM5-DAXdhA=s96-c",
+  "lastSignedInAt": "1782093838159",
+  "createdAt": "1781567191042",
+  "customAttributes": "{\"rev_role\":\"user\",\"rev_isSuperadmin\":false,\"rev_hasPin\":false,\"rev_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "104556530120161551766",
+      "email": "nguyendacsang1801@gmail.com",
+      "displayName": "Đắc Sang Nguyễn",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJd7vpkCywdWrCOXOpElSZEp4dhXGeKAmS-2kZ8mM5-DAXdhA=s96-c"
+    }
+  ]
+},
+{
+  "localId": "6vbNbLIrMSO68GbSuyubP4kPFwG2",
+  "email": "nhahangbnc2@gmail.com",
+  "emailVerified": true,
+  "displayName": "123 nhahangbnc",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocI500w5SLuVVdbK3Q0cMymo27G5AFPE8Srw8WzXVXAaCwf53Q=s96-c",
+  "lastSignedInAt": "1781886813634",
+  "createdAt": "1781886813634",
+  "customAttributes": "{\"rev_role\":\"user\",\"rev_isSuperadmin\":false,\"rev_hasPin\":false,\"rev_status\":\"pending\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "117248145369635273406",
+      "email": "nhahangbnc2@gmail.com",
+      "displayName": "123 nhahangbnc",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocI500w5SLuVVdbK3Q0cMymo27G5AFPE8Srw8WzXVXAaCwf53Q=s96-c"
+    }
+  ]
+},
+{
+  "localId": "JWNc61nbHEMfcBxM1nU970ZhPu72",
+  "email": "hieunguyen.bcc@gmail.com",
+  "emailVerified": true,
+  "displayName": "Hieu Nguyen",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKTEeScATPkRYlwEOi4x_u1CaW83nlwXoNXsSdMRRCo3ouhWNEy=s96-c",
+  "lastSignedInAt": "1781850721139",
+  "createdAt": "1781850721139",
+  "customAttributes": "{\"rev_role\":\"user\",\"rev_isSuperadmin\":false,\"rev_hasPin\":false,\"rev_status\":\"pending\",\"gt_role\":\"user\",\"gt_isSuperadmin\":false,\"gt_hasPin\":false,\"gt_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "104343954362403768660",
+      "email": "hieunguyen.bcc@gmail.com",
+      "displayName": "Hieu Nguyen",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKTEeScATPkRYlwEOi4x_u1CaW83nlwXoNXsSdMRRCo3ouhWNEy=s96-c"
+    }
+  ]
+},
+{
+  "localId": "NojsbfouJwWrGUliqOIkGNxU9un1",
+  "email": "tranminhtucnsh@gmail.com",
+  "emailVerified": true,
+  "displayName": "MINH TỨ TRẦN",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ4tkPC4JoK27CulXAPdrGrv-j4HNyAsppRde3vtrkvEk4IbOlu=s96-c",
+  "lastSignedInAt": "1782052620941",
+  "createdAt": "1782051430038",
+  "customAttributes": "{\"role\":\"customer\",\"status\":\"active\",\"admin\":false,\"isSuperadmin\":false,\"hasPin\":false,\"skb_role\":\"customer\",\"skb_admin\":false,\"skb_isSuperadmin\":false,\"skb_status\":\"active\",\"skb_email\":\"tranminhtucnsh@gmail.com\",\"skb_updatedAt\":1782051438320,\"email\":\"tranminhtucnsh@gmail.com\",\"updatedAt\":1782051438320}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "105925635309357538241",
+      "email": "tranminhtucnsh@gmail.com",
+      "displayName": "MINH TỨ TRẦN",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJ4tkPC4JoK27CulXAPdrGrv-j4HNyAsppRde3vtrkvEk4IbOlu=s96-c"
+    }
+  ]
+},
+{
+  "localId": "NuAwrKyviShKDvrxjLlRnyHGB852",
+  "email": "vietrintran@gmail.com",
+  "emailVerified": true,
+  "displayName": "Viết Rin Trần",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL7HjUT8OIjtoqppZyaytoFNA2dZjrWZv9a8b67YMnC_Tl3Kc5f=s96-c",
+  "lastSignedInAt": "1781919066482",
+  "createdAt": "1781919066482",
+  "customAttributes": "{\"apps\":[],\"gt_role\":\"user\",\"gt_isSuperadmin\":false,\"gt_hasPin\":true,\"gt_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "108311653941469050864",
+      "email": "vietrintran@gmail.com",
+      "displayName": "Viết Rin Trần",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocL7HjUT8OIjtoqppZyaytoFNA2dZjrWZv9a8b67YMnC_Tl3Kc5f=s96-c"
+    }
+  ]
+},
+{
+  "localId": "P0N74uRiOpTu33hi7IskMjNZK792",
+  "email": "linhbui.afa@gmail.com",
+  "emailVerified": true,
+  "displayName": "Linh Bùi",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocINnKN2Va15U9evhBSJkcd4qBmQrD9IAPaFS2xbJI9_xutJ5RQ=s96-c",
+  "lastSignedInAt": "1782010760490",
+  "createdAt": "1781577970720",
+  "customAttributes": "{\"rev_role\":\"user\",\"rev_isSuperadmin\":false,\"rev_hasPin\":true,\"rev_status\":\"approved\",\"skb_role\":\"customer\",\"skb_admin\":false,\"skb_isSuperadmin\":false,\"skb_status\":\"active\",\"skb_email\":\"linhbui.afa@gmail.com\",\"skb_updatedAt\":1781621430335,\"email\":\"linhbui.afa@gmail.com\",\"updatedAt\":1781621430335,\"gt_role\":\"admin\",\"gt_isSuperadmin\":true,\"gt_hasPin\":true,\"gt_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "106046290076803962748",
+      "email": "linhbui.afa@gmail.com",
+      "displayName": "Linh Bùi",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocINnKN2Va15U9evhBSJkcd4qBmQrD9IAPaFS2xbJI9_xutJ5RQ=s96-c"
+    }
+  ]
+},
+{
+  "localId": "UhIY2b98nCcUI5ejnT3fneqrRPS2",
+  "email": "trangntk171190@gmail.com",
+  "emailVerified": true,
+  "displayName": "Trang Nguyễn Thị Khánh",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocI84pqTLkDEI7Cpczr9j59llPslNGGjxdXQM7V4qOujpGwF4Q=s96-c",
+  "lastSignedInAt": "1781601726030",
+  "createdAt": "1781579514422",
+  "customAttributes": "{\"rev_role\":\"staff\",\"rev_isSuperadmin\":false,\"rev_hasPin\":true,\"rev_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "115642296062455887168",
+      "email": "trangntk171190@gmail.com",
+      "displayName": "Trang Nguyễn Thị Khánh",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocI84pqTLkDEI7Cpczr9j59llPslNGGjxdXQM7V4qOujpGwF4Q=s96-c"
+    }
+  ]
+},
+{
+  "localId": "VQ5Z7AiMdHWhi942k4H8LebB8AO2",
+  "email": "thule2911.buh@gmail.com",
+  "emailVerified": true,
+  "displayName": "Thu Lê",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKdRWekUH4JQx9RIgSQdZdL4NZpIW4YNGhkzs7B2OcdNQF6Hvs=s96-c",
+  "lastSignedInAt": "1781663093175",
+  "createdAt": "1781663093175",
+  "customAttributes": "{\"kpi_role\":\"user\",\"kpi_hasPin\":false,\"kpi_status\":\"pending\",\"kpi_admin\":false,\"kpi_isSuperadmin\":false,\"apps\":[\"kpi\"]}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "100328398989245259638",
+      "email": "thule2911.buh@gmail.com",
+      "displayName": "Thu Lê",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKdRWekUH4JQx9RIgSQdZdL4NZpIW4YNGhkzs7B2OcdNQF6Hvs=s96-c"
+    }
+  ]
+},
+{
+  "localId": "WkjjaUVkBZPp9ZM3Sxzow4jOEVD3",
+  "email": "nguyenlaman1979@gmail.com",
+  "emailVerified": true,
+  "displayName": "Lâm An Nguyễn",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIZwpW-vnnVh_mwimfHoL4T13NODfPbo_lbbKSZUdUrhMElIb03zw=s96-c",
+  "lastSignedInAt": "1780905666465",
+  "createdAt": "1780328906066",
+  "customAttributes": "{\"rev_role\":\"user\",\"rev_isSuperadmin\":false,\"rev_hasPin\":true,\"rev_status\":\"approved\",\"skb_role\":\"super_admin\",\"skb_admin\":true,\"skb_isSuperadmin\":true,\"skb_status\":\"active\",\"skb_email\":\"nguyenlaman1979@gmail.com\",\"skb_updatedAt\":1780735751986,\"email\":\"nguyenlaman1979@gmail.com\",\"updatedAt\":1780735751986}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "101110313071488861661",
+      "email": "nguyenlaman1979@gmail.com",
+      "displayName": "Lâm An Nguyễn",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocIZwpW-vnnVh_mwimfHoL4T13NODfPbo_lbbKSZUdUrhMElIb03zw=s96-c"
+    }
+  ]
+},
+{
+  "localId": "ZFWA1wagqURDt2ZUYF0UryMWNj93",
+  "email": "linhbtc2105@gmail.com",
+  "emailVerified": true,
+  "displayName": "Cẩm Linh Bùi Thị",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKTKau3oJABQMKXU4pBPqS8TfoYp5uQa3kDdOdUDyg1MoKa1Q=s96-c",
+  "lastSignedInAt": "1781576389749",
+  "createdAt": "1781573832111",
+  "customAttributes": "{\"apps\":[],\"rev_role\":\"staff\",\"rev_isSuperadmin\":false,\"rev_hasPin\":true,\"rev_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "114272440267400613708",
+      "email": "linhbtc2105@gmail.com",
+      "displayName": "Cẩm Linh Bùi Thị",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKTKau3oJABQMKXU4pBPqS8TfoYp5uQa3kDdOdUDyg1MoKa1Q=s96-c"
+    }
+  ]
+},
+{
+  "localId": "gOt9myOfbPNTO0EHPl29oiY2S8f1",
+  "email": "doanvuhaiminh2000@gmail.com",
+  "emailVerified": true,
+  "displayName": "Hải Minh Đoàn Vũ",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKtjga_UGsRxh0uJivV7FwpVF05HzkcKwXPqA35WrJkGNWGqw=s96-c",
+  "lastSignedInAt": "1781496798638",
+  "createdAt": "1780048671689",
+  "customAttributes": "{\"gt_role\":\"user\",\"gt_isSuperadmin\":false,\"gt_hasPin\":true,\"gt_status\":\"approved\",\"rev_role\":\"admin\",\"rev_isSuperadmin\":false,\"rev_hasPin\":true,\"rev_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "118260541153352087709",
+      "email": "doanvuhaiminh2000@gmail.com",
+      "displayName": "Hải Minh Đoàn Vũ",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKtjga_UGsRxh0uJivV7FwpVF05HzkcKwXPqA35WrJkGNWGqw=s96-c"
+    }
+  ]
+},
+{
+  "localId": "ghuUwlhxF9gg46qYG1xOmrqeoFf2",
+  "email": "tuanlinh.afa@gmail.com",
+  "emailVerified": true,
+  "displayName": "Tuấn Linh Bùi",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLsv9Ix2Mh69JAMnWRIJTtzKbWAmb697HAXwZERWnrMBELOoFvK=s96-c",
+  "lastSignedInAt": "1782092258632",
+  "createdAt": "1782092258632",
+  "customAttributes": "{\"apps\":[],\"rev_role\":\"user\",\"rev_isSuperadmin\":false,\"rev_hasPin\":false,\"rev_status\":\"pending\",\"skb_role\":\"customer\",\"skb_admin\":false,\"skb_isSuperadmin\":false,\"skb_status\":\"active\",\"skb_email\":\"tuanlinh.afa@gmail.com\",\"skb_updatedAt\":1782092265578,\"role\":\"customer\",\"admin\":false,\"isSuperadmin\":false,\"status\":\"active\",\"email\":\"tuanlinh.afa@gmail.com\",\"updatedAt\":1782092265578}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "103799336571142207809",
+      "email": "tuanlinh.afa@gmail.com",
+      "displayName": "Tuấn Linh Bùi",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocLsv9Ix2Mh69JAMnWRIJTtzKbWAmb697HAXwZERWnrMBELOoFvK=s96-c"
+    }
+  ]
+},
+{
+  "localId": "glA160SPUodEoXaGczyfVffkYVN2",
+  "email": "thuyanh151184@gmail.com",
+  "emailVerified": true,
+  "displayName": "Lethuy Anh",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKvyDZAjoy3GdwDwZpnDSbJksp6jWdaEkPZc4N2tZLyvrgwIIwQ=s96-c",
+  "lastSignedInAt": "1782076455078",
+  "createdAt": "1782076455078",
+  "customAttributes": "{\"role\":\"user\",\"status\":\"approved\",\"admin\":false,\"isSuperadmin\":false,\"hasPin\":false}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "112326687288230793908",
+      "email": "thuyanh151184@gmail.com",
+      "displayName": "Lethuy Anh",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKvyDZAjoy3GdwDwZpnDSbJksp6jWdaEkPZc4N2tZLyvrgwIIwQ=s96-c"
+    }
+  ]
+},
+{
+  "localId": "lAy7AY1lkoNKny2hwwL7bqFI9sP2",
+  "email": "vantrungcochetao@gmail.com",
+  "emailVerified": true,
+  "displayName": "Văn Trung Phạm",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKwGlSM2F-RdXDriPUZ6sG7uMIENrsDBAbvR1UUfPDXNzmckbupYA=s96-c",
+  "lastSignedInAt": "1781922870949",
+  "createdAt": "1781919699335",
+  "customAttributes": "{\"gt_role\":\"user\",\"gt_isSuperadmin\":false,\"gt_hasPin\":true,\"gt_status\":\"approved\"}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "112886228357960208455",
+      "email": "vantrungcochetao@gmail.com",
+      "displayName": "Văn Trung Phạm",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocKwGlSM2F-RdXDriPUZ6sG7uMIENrsDBAbvR1UUfPDXNzmckbupYA=s96-c"
+    }
+  ]
+},
+{
+  "localId": "xbyrqwq1tHe8P9OUoDe5RAFK9AK2",
+  "email": "htkimoanh0411@gmail.com",
+  "emailVerified": true,
+  "displayName": "Oanh Hồ Thị",
+  "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJxN8JjIKjTLcZlgh402UVOlPPHnvuTWt2_VLt4oZJxo5DhQQ=s96-c",
+  "lastSignedInAt": "1781856464109",
+  "createdAt": "1780220157020",
+  "customAttributes": "{\"role\":\"pending\",\"isSuperadmin\":false,\"hasPin\":false,\"status\":\"pending\",\"admin\":false}",
+  "providerUserInfo": [
+    {
+      "providerId": "google.com",
+      "rawId": "101180539221905506120",
+      "email": "htkimoanh0411@gmail.com",
+      "displayName": "Oanh Hồ Thị",
+      "photoUrl": "https://lh3.googleusercontent.com/a/ACg8ocJxN8JjIKjTLcZlgh402UVOlPPHnvuTWt2_VLt4oZJxo5DhQQ=s96-c"
+    }
+  ]
+}]}
