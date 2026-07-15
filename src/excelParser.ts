@@ -81,6 +81,8 @@ function parseReportDate(value: Cell): string {
     return `${y}-${m}-${d}`;
   }
   const raw = text(value);
+  if (!raw) return "";
+
   const compact = raw.match(/^(\d{1,2})([A-Za-z]{3})(\d{4})$/);
   if (compact) {
     const [, d, monthText, y] = compact;
@@ -97,7 +99,7 @@ function parseReportDate(value: Cell): string {
     const [, d, m, y] = slashed;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
-  return new Date().toISOString().slice(0, 10);
+  return "";
 }
 
 function rowHasMetrics(row: Row): boolean {
@@ -251,7 +253,8 @@ export async function parseFlightExcel(file: File): Promise<FlightDataset> {
     if (stt === null || !currentAirline || !rowHasMetrics(row)) continue;
 
     sourceFlightRows += 1;
-    const rowDate = parseReportDate(row[COL.date]);
+    let rowDate = parseReportDate(row[COL.date]);
+    if (!rowDate) rowDate = reportDate;
     if (!reportDate) reportDate = rowDate;
     records.push(...buildLegs(row, sourceRow, currentAirline, rowDate, warnings));
   }
@@ -260,7 +263,26 @@ export async function parseFlightExcel(file: File): Promise<FlightDataset> {
     throw new Error("Khong tim thay dong chuyen bay hop le trong file Excel.");
   }
 
-  const datasetDate = reportDate || records[0].reportDate;
+  let datasetDate = reportDate || records[0]?.reportDate;
+  if (!datasetDate) {
+    // Try to parse from printDateText if present, else fallback to today
+    const printDateRaw = meta.printDateText || "";
+    const printMatch = printDateRaw.match(/Ng\u00e0y (\d{2}) th\u00e1ng (\d{2}) n\u0103m (\d{4})/);
+    if (printMatch) {
+      datasetDate = `${printMatch[3]}-${printMatch[2]}-${printMatch[1]}`;
+    } else {
+      datasetDate = new Date().toISOString().slice(0, 10);
+    }
+  }
+
+  // Đảm bảo tất cả các leg đều có reportDate và id hợp lệ (phòng trường hợp file Excel bị thiếu ô ngày tháng)
+  records.forEach(leg => {
+    if (!leg.reportDate) {
+      leg.reportDate = datasetDate;
+      leg.id = `${leg.reportDate}-${leg.sourceRow}-${leg.direction}-${leg.flightNo}-${leg.route}`;
+    }
+  });
+
   return {
     id: datasetDate,
     reportDate: datasetDate,
