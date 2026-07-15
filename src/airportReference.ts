@@ -79,6 +79,7 @@ const AIRPORTS: Record<string, AirportInfo> = {
   TPE: { code: "TPE", name: "Taiwan Taoyuan International Airport", city: "Taipei", province: "Taoyuan", country: "Taiwan" },
   TSA: { code: "TSA", name: "Taipei Songshan Airport", city: "Taipei", province: "Taipei", country: "Taiwan" },
   UIH: { code: "UIH", name: "Phu Cat Airport", city: "Quy Nhơn", province: "Bình Định", country: "Vietnam" },
+  USM: { code: "USM", name: "Samui Airport", city: "Koh Samui", province: "Surat Thani", country: "Thailand" },
   VCA: { code: "VCA", name: "Can Tho International Airport", city: "Cần Thơ", province: "Cần Thơ", country: "Vietnam" },
   VCL: { code: "VCL", name: "Chu Lai Airport", city: "Chu Lai", province: "Quảng Nam", country: "Vietnam" },
   VCS: { code: "VCS", name: "Con Dao Airport", city: "Côn Đảo", province: "Bà Rịa - Vùng Tàu", country: "Vietnam" },
