@@ -73,7 +73,13 @@ function nullableMetric(row: Row, index: number): number | null {
 }
 
 function parseReportDate(value: Cell): string {
-  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (value instanceof Date) {
+    // Sử dụng getUTCFullYear, getUTCMonth, getUTCDate vì read-excel-file parse date dưới dạng UTC
+    const y = value.getUTCFullYear();
+    const m = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(value.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
   const raw = text(value);
   const compact = raw.match(/^(\d{1,2})([A-Za-z]{3})(\d{4})$/);
   if (compact) {
@@ -84,6 +90,11 @@ function parseReportDate(value: Cell): string {
   const dashed = raw.match(/(\d{1,2})-(\d{1,2})-(\d{4})/);
   if (dashed) {
     const [, d, m, y] = dashed;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  const slashed = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashed) {
+    const [, d, m, y] = slashed;
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   return new Date().toISOString().slice(0, 10);

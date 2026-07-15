@@ -679,6 +679,12 @@ function DashboardContent() {
       await saveDatasetToCloud(dataset);
       
       setActiveDate(dataset.reportDate);
+      // Expand the date filter to include the uploaded date so data is visible immediately
+      setFilters(f => ({
+        ...f,
+        dateFrom: !f.dateFrom || dataset.reportDate < f.dateFrom ? dataset.reportDate : f.dateFrom,
+        dateTo:   !f.dateTo   || dataset.reportDate > f.dateTo   ? dataset.reportDate : f.dateTo,
+      }));
       setMessage(`✓ Nhập ${formatNumber(dataset.sourceFlightRows)} dòng → ${formatNumber(dataset.legCount)} leg (${formatDate(dataset.reportDate)})`);
       toast.success(`Tải báo cáo ngày ${formatDate(dataset.reportDate)} lên Firestore thành công!`);
     } catch (error) {

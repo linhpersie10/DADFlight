@@ -19,18 +19,16 @@ export async function saveDatasetToCloud(dataset: FlightDataset): Promise<void> 
   const datasetRef = doc(db, 'PKT_DAD_datasets', dataset.id);
   const recordsRef = doc(db, 'PKT_DAD_dataset_records', dataset.id);
   
-  // 1. Lưu metadata document (loại bỏ trường records ra để giữ metadata nhẹ)
+  // 1. Lưu metadata và records đồng thời qua batch để tránh race condition
+  // khi onSnapshot kích hoạt trước khi records được lưu
   const { records, ...metadata } = dataset;
   const updatedAt = new Date().toISOString();
-  await setDoc(datasetRef, {
-    ...metadata,
-    updatedAt
-  });
   
-  // 2. Lưu toàn bộ records trong 1 document duy nhất
-  await setDoc(recordsRef, {
-    records
-  });
+  const batch = writeBatch(db);
+  batch.set(recordsRef, { records });
+  batch.set(datasetRef, { ...metadata, updatedAt });
+  
+  await batch.commit();
 }
 
 /**
