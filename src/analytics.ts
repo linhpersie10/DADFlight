@@ -1,4 +1,5 @@
 import { getAirportInfo } from "./airportReference";
+import { getAirlineName } from "./airlineReference";
 import type { DashboardFilters, FlightLeg, SummaryRow, Direction } from "./types";
 
 export interface RankingItem {
@@ -165,7 +166,8 @@ export function summarizeByAirline(records: FlightLeg[]): SummaryRow[] {
   const groups = new Map<string, SummaryRow>();
   for (const record of records) {
     if (!groups.has(record.airline)) {
-      groups.set(record.airline, blankSummary(record.airline, record.airline, "Hang hang khong"));
+      const fullName = getAirlineName(record.airline);
+      groups.set(record.airline, blankSummary(record.airline, record.airline, fullName));
     }
     addRecord(groups.get(record.airline)!, record);
   }
