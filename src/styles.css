@@ -656,7 +656,7 @@ p { color: var(--text-secondary); }
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px;
 }
 

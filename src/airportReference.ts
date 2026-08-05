@@ -100,6 +100,8 @@ const AIRPORTS: Record<string, AirportInfo> = {
   SRG: { code: "SRG", name: "Jenderal Ahmad Yani International Airport", city: "Semarang", province: "Central Java", country: "Indonesia" },
   SZB: { code: "SZB", name: "Sultan Abdul Aziz Shah Airport", city: "Subang", province: "Selangor", country: "Malaysia" },
   UTP: { code: "UTP", name: "U-Tapao Rayong Pattaya International Airport", city: "Rayong", province: "Rayong", country: "Thailand" },
+  KIA: { code: "KIA", name: "Kiana Airport", city: "Kiana", province: "Alaska", country: "United States" },
+  DNA: { code: "DNA", name: "Kadena Air Base", city: "Okinawa", province: "Okinawa", country: "Japan" },
 };
 
 export function getAirportInfo(code: string): AirportInfo {
