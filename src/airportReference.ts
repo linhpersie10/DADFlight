@@ -94,6 +94,12 @@ const AIRPORTS: Record<string, AirportInfo> = {
   XIY: { code: "XIY", name: "Xi'an Xianyang International Airport", city: "Xi'an", province: "Shaanxi", country: "China" },
   XSP: { code: "XSP", name: "Seletar Airport", city: "Singapore", province: "Singapore", country: "Singapore" },
   ZNZ: { code: "ZNZ", name: "Abeid Amani Karume International Airport", city: "Zanzibar", province: "Zanzibar", country: "Tanzania" },
+  OKJ: { code: "OKJ", name: "Okayama Momotaro Airport", city: "Okayama", province: "Okayama", country: "Japan" },
+  JHB: { code: "JHB", name: "Senai International Airport", city: "Johor Bahru", province: "Johor", country: "Malaysia" },
+  ZZZ: { code: "ZZZ", name: "Unknown Airport", city: "Unknown", province: "Unknown", country: "Unknown" },
+  SRG: { code: "SRG", name: "Jenderal Ahmad Yani International Airport", city: "Semarang", province: "Central Java", country: "Indonesia" },
+  SZB: { code: "SZB", name: "Sultan Abdul Aziz Shah Airport", city: "Subang", province: "Selangor", country: "Malaysia" },
+  UTP: { code: "UTP", name: "U-Tapao Rayong Pattaya International Airport", city: "Rayong", province: "Rayong", country: "Thailand" },
 };
 
 export function getAirportInfo(code: string): AirportInfo {
@@ -107,6 +113,17 @@ export function getAirportInfo(code: string): AirportInfo {
       country: "Chua xac dinh",
     }
   );
+}
+
+export function isAirportUnknown(code: string): boolean {
+  const normalized = code.trim().toUpperCase();
+  return !AIRPORTS[normalized];
+}
+
+export function mergeDynamicAirports(dynamicAirports: Record<string, AirportInfo>) {
+  for (const [code, info] of Object.entries(dynamicAirports)) {
+    AIRPORTS[code.toUpperCase()] = info;
+  }
 }
 
 export function formatAirport(code: string): string {

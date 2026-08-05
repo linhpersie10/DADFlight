@@ -40,6 +40,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { getCache, setCache, deleteCache } from "./dbCache";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db } from "./firebase";
+import { loadDynamicAirports, autoDiscoverAirports } from "./airportService";
+import { isAirportUnknown } from "./airportReference";
 import { Toaster, toast } from "react-hot-toast";
 import Login from "./components/Login";
 import PendingApproval from "./components/PendingApproval";
@@ -441,6 +443,7 @@ function DashboardContent() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState("");
+  const [airportsVersion, setAirportsVersion] = useState(0);
   const observerRef = useRef<ResizeObserver | null>(null);
   const fetchingDatasetIds = useRef<Set<string>>(new Set());
   const isInitialFilterSet = useRef(false);
@@ -502,6 +505,13 @@ function DashboardContent() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Load dynamic airports on mount
+  useEffect(() => {
+    loadDynamicAirports().then(() => {
+      setAirportsVersion(v => v + 1);
+    });
   }, []);
 
   // Load missing legs for datasets reactively with Lazy Loading and IndexedDB Caching
@@ -572,8 +582,8 @@ function DashboardContent() {
     return { min: dates[0] ?? "", max: dates[dates.length - 1] ?? "" };
   }, [datasets]);
 
-  const filteredRecords = useMemo(() => filterRecords(allRecords, filters), [allRecords, filters]);
-  const filteredTotals = useMemo(() => totals(filteredRecords), [filteredRecords]);
+  const filteredRecords = useMemo(() => filterRecords(allRecords, filters), [allRecords, filters, airportsVersion]);
+  const filteredTotals = useMemo(() => totals(filteredRecords), [filteredRecords, airportsVersion]);
 
   const overallOccupancy = useMemo(() => {
     let totalSeats = 0;
@@ -595,9 +605,9 @@ function DashboardContent() {
     };
   }, [filteredRecords]);
 
-  const marketRows = useMemo(() => summarizeByMarket(filteredRecords), [filteredRecords]);
-  const originRows = useMemo(() => summarizeByOrigin(filteredRecords), [filteredRecords]);
-  const airlineRows = useMemo(() => summarizeByAirline(filteredRecords), [filteredRecords]);
+  const marketRows = useMemo(() => summarizeByMarket(filteredRecords), [filteredRecords, airportsVersion]);
+  const originRows = useMemo(() => summarizeByOrigin(filteredRecords), [filteredRecords, airportsVersion]);
+  const airlineRows = useMemo(() => summarizeByAirline(filteredRecords), [filteredRecords, airportsVersion]);
   const maxPassengers = Math.max(0, ...marketRows.map((r) => r.passengers), ...originRows.map((r) => r.passengers), ...airlineRows.map((r) => r.passengers));
 
   // Filter options built from records within current date range
@@ -609,10 +619,10 @@ function DashboardContent() {
     [allRecords, filters.dateFrom, filters.dateTo],
   );
 
-  const originOptions = useMemo(() => buildAirportOptions(rangeRecords), [rangeRecords]);
-  const airlineOptions = useMemo(() => buildAirlineOptions(rangeRecords), [rangeRecords]);
-  const countryOptions = useMemo(() => buildCountryOptions(rangeRecords), [rangeRecords]);
-  const provinceOptions = useMemo(() => buildProvinceOptions(rangeRecords, filters.country), [rangeRecords, filters.country]);
+  const originOptions = useMemo(() => buildAirportOptions(rangeRecords), [rangeRecords, airportsVersion]);
+  const airlineOptions = useMemo(() => buildAirlineOptions(rangeRecords), [rangeRecords, airportsVersion]);
+  const countryOptions = useMemo(() => buildCountryOptions(rangeRecords), [rangeRecords, airportsVersion]);
+  const provinceOptions = useMemo(() => buildProvinceOptions(rangeRecords, filters.country), [rangeRecords, filters.country, airportsVersion]);
 
   useEffect(() => {
     if (filters.province && !provinceOptions.includes(filters.province)) {
@@ -657,6 +667,27 @@ function DashboardContent() {
           dateFrom: f.dateFrom ? (minDate && minDate < f.dateFrom ? minDate : f.dateFrom) : minDate,
           dateTo: f.dateTo ? (maxDate && maxDate > f.dateTo ? maxDate : f.dateTo) : maxDate,
         }));
+      }
+    }
+    
+    // Auto-discover missing airports for newly loaded records
+    if (datasets.length > 0) {
+      const allCodes = new Set<string>();
+      datasets.forEach(d => {
+        d.records.forEach(r => {
+          if (r.marketAirport) allCodes.add(r.marketAirport);
+          if (r.origin) allCodes.add(r.origin);
+          if (r.destination) allCodes.add(r.destination);
+        });
+      });
+      const missing = Array.from(allCodes).filter(code => isAirportUnknown(code));
+      if (missing.length > 0) {
+        autoDiscoverAirports(missing).then(discovered => {
+          if (discovered.length > 0) {
+            setAirportsVersion(v => v + 1);
+            toast.success(`Đã tự động cập nhật thông tin cho ${discovered.length} sân bay mới.`);
+          }
+        });
       }
     }
   }, [loadingDatasets, datasets]);
