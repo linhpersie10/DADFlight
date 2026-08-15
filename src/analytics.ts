@@ -430,3 +430,65 @@ export function getTopDaysByFlights(records: FlightLeg[], dir: "arrival" | "depa
     .sort((a, b) => b.value - a.value)
     .slice(0, limit);
 }
+
+export const COUNTRY_NAMES_VI: Record<string, string> = {
+  "Vietnam": "Việt Nam",
+  "South Korea": "Hàn Quốc",
+  "Korea": "Hàn Quốc",
+  "Thailand": "Thái Lan",
+  "Japan": "Nhật Bản",
+  "China": "Trung Quốc",
+  "Taiwan": "Đài Loan",
+  "Singapore": "Singapore",
+  "Malaysia": "Malaysia",
+  "Hong Kong": "Hồng Kông",
+  "Macau": "Ma Cao",
+  "India": "Ấn Độ",
+  "Russia": "Nga",
+  "Philippines": "Philippines",
+  "Indonesia": "Indonesia",
+  "Cambodia": "Campuchia",
+  "Laos": "Lào",
+  "Australia": "Úc",
+  "USA": "Mỹ",
+  "Kazakhstan": "Kazakhstan",
+};
+
+export function getCountryDisplayName(country: string): string {
+  return COUNTRY_NAMES_VI[country] || country;
+}
+
+export interface TopCountryResult {
+  country: string;
+  countryDisplay: string;
+  passengers: number;
+  legs: number;
+  percentage: number;
+}
+
+export function getTopCountry(records: FlightLeg[]): TopCountryResult | null {
+  if (records.length === 0) return null;
+  const groups = new Map<string, { passengers: number; legs: number }>();
+  let totalPax = 0;
+
+  for (const record of records) {
+    const country = getAirportInfo(record.marketAirport).country || "Khác";
+    const existing = groups.get(country) || { passengers: 0, legs: 0 };
+    existing.passengers += record.passengerTotal;
+    existing.legs += 1;
+    totalPax += record.passengerTotal;
+    groups.set(country, existing);
+  }
+
+  const sorted = Array.from(groups.entries()).sort((a, b) => b[1].passengers - a[1].passengers);
+  if (sorted.length === 0) return null;
+
+  const [topCountry, data] = sorted[0];
+  return {
+    country: topCountry,
+    countryDisplay: getCountryDisplayName(topCountry),
+    passengers: data.passengers,
+    legs: data.legs,
+    percentage: totalPax > 0 ? (data.passengers / totalPax) * 100 : 0,
+  };
+}

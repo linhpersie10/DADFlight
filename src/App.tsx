@@ -17,6 +17,7 @@ import {
   Search,
   SlidersHorizontal,
   Trash2,
+  Trophy,
   Upload,
   Users,
   X,
@@ -37,6 +38,7 @@ import {
   totals,
   getAircraftCapacity,
   calculateOccupancy,
+  getTopCountry,
 } from "./analytics";
 import { parseFlightExcel } from "./excelParser";
 import { saveDatasetToCloud, deleteDatasetFromCloud, fetchDatasetLegs } from "./storage";
@@ -57,7 +59,7 @@ import "./styles.css";
 import { toPng } from 'html-to-image';
 
 const INITIAL_FILTERS: DashboardFilters = {
-  direction: "all",
+  direction: "arrival",
   airline: "",
   origin: "",
   country: "",
@@ -74,8 +76,11 @@ function getDefaultDateRange(datasets: FlightDataset[]) {
   if (datasets.length === 0) return { dateFrom: "", dateTo: "" };
   const uniqueDates = Array.from(new Set(datasets.map(d => d.reportDate))).sort((a, b) => b.localeCompare(a));
   const dateTo = uniqueDates[0] || "";
-  const targetIndex = Math.min(6, uniqueDates.length - 1);
-  const dateFrom = uniqueDates[targetIndex] || "";
+  if (!dateTo) return { dateFrom: "", dateTo: "" };
+
+  // Mặc định từ ngày đầu tháng đến ngày hiện tại/mới nhất của tháng trong tập dữ liệu
+  const [year, month] = dateTo.split("-");
+  const dateFrom = `${year}-${month}-01`;
   return { dateFrom, dateTo };
 }
 
@@ -356,9 +361,9 @@ function ActiveFilterChips({
           {filters.dateFrom !== filters.dateTo ? ` – ${filters.dateTo ? formatDate(filters.dateTo) : "?"}` : ""}
         </span>
       )}
-      {filters.direction !== "all" && (
+      {filters.direction !== INITIAL_FILTERS.direction && (
         <span className="filter-chip" onClick={onOpenFilter}>
-          {filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}
+          {filters.direction === "departure" ? "↑ Chỉ đi từ DAD" : filters.direction === "all" ? "⇄ Đi và đến" : "↓ Chỉ đến DAD"}
         </span>
       )}
       {filters.flightScope !== "all" && (
@@ -762,6 +767,7 @@ function DashboardContent() {
 
   const filteredRecords = useMemo(() => filterRecords(allRecords, filters), [allRecords, filters, airportsVersion]);
   const filteredTotals = useMemo(() => totals(filteredRecords), [filteredRecords, airportsVersion]);
+  const topCountry = useMemo(() => getTopCountry(filteredRecords), [filteredRecords, airportsVersion]);
 
   const overallOccupancy = useMemo(() => {
     let totalSeats = 0;
@@ -878,7 +884,7 @@ function DashboardContent() {
   );
   const hasActiveFilters = Boolean(
     hasActiveDateFilter ||
-    filters.direction !== "all" ||
+    filters.direction !== INITIAL_FILTERS.direction ||
     filters.airline ||
     filters.origin ||
     filters.country ||
@@ -890,7 +896,7 @@ function DashboardContent() {
   const activeFilterCount = useMemo(() => {
     let count = 0;
     if (hasActiveDateFilter) count++;
-    if (filters.direction !== "all") count++;
+    if (filters.direction !== INITIAL_FILTERS.direction) count++;
     if (filters.flightScope !== "all") count++;
     if (filters.airline) count++;
     if (filters.origin) count++;
@@ -1264,7 +1270,7 @@ function DashboardContent() {
               <ScoreCard color="green" icon={<ArrowUpFromLine size={19} />} label="Đi từ DAD" value={formatNumber(filteredTotals.departures)} detail={`${formatNumber(filteredTotals.departurePassengers)} khách đi`} />
               <ScoreCard color="blue" icon={<Globe size={19} />} label="Khách quốc tế" value={formatNumber(filteredTotals.intlPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.intlPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% tổng khách · ${formatNumber(filteredTotals.intlLegs)} leg`} />
               <ScoreCard color="gold" icon={<Percent size={19} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`Tính trên ${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg bay có cấu hình`} />
-              <ScoreCard color="green" icon={<Package size={19} />} label="Hàng hóa & Hành lý" value={`${(filteredTotals.totalPayloadKg / 1000).toFixed(1)} tấn`} detail={`HL ${(filteredTotals.baggageKg / 1000).toFixed(1)}T · Hàng ${(filteredTotals.cargoKg / 1000).toFixed(1)}T`} />
+              <ScoreCard color="green" icon={<Trophy size={19} />} label="Quốc gia dẫn đầu (khách)" value={topCountry ? topCountry.countryDisplay : "—"} detail={topCountry ? `${formatNumber(topCountry.passengers)} khách (${topCountry.percentage.toFixed(1)}%) · ${formatNumber(topCountry.legs)} leg` : "Chưa có dữ liệu"} />
               <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Phạm vi khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
             </section>
           </>
