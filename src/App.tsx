@@ -4,6 +4,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   CalendarDays,
+  Check,
   ChevronDown,
   Database,
   Filter,
@@ -11,7 +12,9 @@ import {
   Package,
   Percent,
   Plane,
+  RotateCcw,
   Search,
+  SlidersHorizontal,
   Trash2,
   Upload,
   Users,
@@ -215,6 +218,182 @@ function DatasetPicker({
 
 type ColorVariant = "cyan" | "blue" | "gold" | "green" | "purple";
 
+function FilterInputs({
+  filters,
+  setFilters,
+  dateBounds,
+  airlineOptions,
+  originOptions,
+  countryOptions,
+  provinceOptions,
+  formatAirport,
+}: {
+  filters: DashboardFilters;
+  setFilters: React.Dispatch<React.SetStateAction<DashboardFilters>>;
+  dateBounds: { min?: string; max?: string };
+  airlineOptions: string[];
+  originOptions: string[];
+  countryOptions: string[];
+  provinceOptions: string[];
+  formatAirport: (code: string) => string;
+}) {
+  return (
+    <div className="filters-grid">
+      <label>
+        Từ ngày
+        <input
+          type="date"
+          value={filters.dateFrom}
+          min={dateBounds.min}
+          max={filters.dateTo || dateBounds.max}
+          onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+        />
+      </label>
+      <label>
+        Đến ngày
+        <input
+          type="date"
+          value={filters.dateTo}
+          min={filters.dateFrom || dateBounds.min}
+          max={dateBounds.max}
+          onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+        />
+      </label>
+      <label onClick={(e) => e.stopPropagation()}>
+        Chiều bay
+        <select
+          value={filters.direction}
+          onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}
+        >
+          <option value="all">Đi và đến</option>
+          <option value="departure">Chỉ đi từ DAD</option>
+          <option value="arrival">Chỉ đến DAD</option>
+        </select>
+      </label>
+      <label onClick={(e) => e.stopPropagation()}>
+        Tuyến bay
+        <select
+          value={filters.flightScope}
+          onChange={(e) => setFilters((f) => ({ ...f, flightScope: e.target.value as DashboardFilters["flightScope"] }))}
+        >
+          <option value="all">Tất cả</option>
+          <option value="domestic">Nội địa</option>
+          <option value="international">Quốc tế</option>
+        </select>
+      </label>
+      <label onClick={(e) => e.stopPropagation()}>
+        Hãng hàng không
+        <select
+          value={filters.airline}
+          onChange={(e) => setFilters((f) => ({ ...f, airline: e.target.value }))}
+        >
+          <option value="">Tất cả</option>
+          {airlineOptions.map((a) => (
+            <option key={a} value={a}>{a}</option>
+          ))}
+        </select>
+      </label>
+      <label onClick={(e) => e.stopPropagation()}>
+        Điểm khởi hành
+        <select
+          value={filters.origin}
+          onChange={(e) => setFilters((f) => ({ ...f, origin: e.target.value }))}
+        >
+          <option value="">Tất cả</option>
+          {originOptions.map((code) => (
+            <option key={code} value={code}>{formatAirport(code)}</option>
+          ))}
+        </select>
+      </label>
+      <label onClick={(e) => e.stopPropagation()}>
+        Quốc gia
+        <select
+          value={filters.country}
+          onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value, province: "" }))}>
+          <option value="">Tất cả</option>
+          {countryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </label>
+      <label onClick={(e) => e.stopPropagation()}>
+        Tỉnh/TP
+        <select
+          value={filters.province}
+          onChange={(e) => setFilters((f) => ({ ...f, province: e.target.value }))}>
+          <option value="">Tất cả</option>
+          {provinceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+      </label>
+      <label className="search-field" onClick={(e) => e.stopPropagation()}>
+        Tìm kiếm
+        <span>
+          <Search size={13} aria-hidden />
+          <input
+            value={filters.search}
+            onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+            placeholder="Số hiệu, hãng, chặng bay..."
+          />
+        </span>
+      </label>
+    </div>
+  );
+}
+
+function ActiveFilterChips({
+  filters,
+  hasActiveDateFilter,
+  onOpenFilter,
+}: {
+  filters: DashboardFilters;
+  hasActiveDateFilter: boolean;
+  onOpenFilter?: () => void;
+}) {
+  return (
+    <div className="active-filters">
+      {hasActiveDateFilter && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          📅 {filters.dateFrom ? formatDate(filters.dateFrom) : "?"}
+          {filters.dateFrom !== filters.dateTo ? ` – ${filters.dateTo ? formatDate(filters.dateTo) : "?"}` : ""}
+        </span>
+      )}
+      {filters.direction !== "all" && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          {filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}
+        </span>
+      )}
+      {filters.flightScope !== "all" && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          🌐 {filters.flightScope === "domestic" ? "Nội địa" : "Quốc tế"}
+        </span>
+      )}
+      {filters.airline && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          ✈ {filters.airline}
+        </span>
+      )}
+      {filters.origin && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          Từ: {filters.origin}
+        </span>
+      )}
+      {filters.country && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          🌍 {filters.country}
+        </span>
+      )}
+      {filters.province && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          📍 {filters.province}
+        </span>
+      )}
+      {filters.search && (
+        <span className="filter-chip" onClick={onOpenFilter}>
+          🔍 "{filters.search}"
+        </span>
+      )}
+    </div>
+  );
+}
+
 function ScoreCard({
   label,
   value,
@@ -231,7 +410,7 @@ function ScoreCard({
   return (
     <div className={`score-card color-${color}`}>
       <div className={`score-icon color-${color}`}>{icon}</div>
-      <div style={{ minWidth: 0 }}>
+      <div className="score-content" style={{ minWidth: 0 }}>
         <div className="score-label">{label}</div>
         <div className="score-value">{value}</div>
         <div className="score-detail">{detail}</div>
@@ -436,6 +615,7 @@ function DashboardContent() {
   const [activeDate, setActiveDate] = useState<string>("");
   const [loadingDatasets, setLoadingDatasets] = useState(true);
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("market");
   const [viewMode, setViewMode] = useState<"dashboard" | "users">("dashboard");
   const [importing, setImporting] = useState(false);
@@ -691,9 +871,33 @@ function DashboardContent() {
 
   const defaultDateRange = useMemo(() => getDefaultDateRange(datasets), [datasets]);
 
-  const hasActiveDateFilter = (filters.dateFrom && filters.dateFrom !== defaultDateRange.dateFrom) ||
-    (filters.dateTo && filters.dateTo !== defaultDateRange.dateTo);
-  const hasActiveFilters = hasActiveDateFilter || filters.direction !== "all" || filters.airline || filters.origin || filters.country || filters.province || filters.search || filters.flightScope !== "all";
+  const hasActiveDateFilter = Boolean(
+    (filters.dateFrom && filters.dateFrom !== defaultDateRange.dateFrom) ||
+    (filters.dateTo && filters.dateTo !== defaultDateRange.dateTo)
+  );
+  const hasActiveFilters = Boolean(
+    hasActiveDateFilter ||
+    filters.direction !== "all" ||
+    filters.airline ||
+    filters.origin ||
+    filters.country ||
+    filters.province ||
+    filters.search ||
+    filters.flightScope !== "all"
+  );
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (hasActiveDateFilter) count++;
+    if (filters.direction !== "all") count++;
+    if (filters.flightScope !== "all") count++;
+    if (filters.airline) count++;
+    if (filters.origin) count++;
+    if (filters.country) count++;
+    if (filters.province) count++;
+    if (filters.search) count++;
+    return count;
+  }, [hasActiveDateFilter, filters]);
 
   async function handleUpload(file: File | undefined) {
     if (!file) return;
@@ -981,13 +1185,15 @@ function DashboardContent() {
 
         {viewMode === "dashboard" && datasets.length > 0 && (
           <>
-
-            {/* FILTERS */}
-            <section className={`filter-panel ${hasActiveFilters ? "has-active-filters" : ""}`}>
+            {/* DESKTOP FILTERS */}
+            <section className={`filter-panel desktop-only ${hasActiveFilters ? "has-active-filters" : ""}`}>
               <div className="filter-header">
                 <div className="panel-title" style={{ marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
                   <Filter size={13} />
                   <span>Bộ lọc</span>
+                  {activeFilterCount > 0 && (
+                    <span className="mobile-filter-count-badge" style={{ marginLeft: "4px" }}>{activeFilterCount}</span>
+                  )}
                 </div>
                 {hasActiveFilters && (
                   <button 
@@ -999,111 +1205,67 @@ function DashboardContent() {
                       setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom, dateTo }));
                     }}
                   >
-                    <X size={10} style={{ display: "inline", marginRight: 3 }} />
+                    <RotateCcw size={10} style={{ display: "inline", marginRight: 3 }} />
                     Xóa bộ lọc
                   </button>
                 )}
               </div>
 
               <div className="filter-panel-body" style={{ marginTop: "14px" }}>
-                <div className="filters-grid">
-                  <label>
-                    Từ ngày
-                    <input
-                      type="date"
-                      value={filters.dateFrom}
-                      min={dateBounds.min}
-                      max={filters.dateTo || dateBounds.max}
-                      onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
-                    />
-                  </label>
-                  <label>
-                    Đến ngày
-                    <input
-                      type="date"
-                      value={filters.dateTo}
-                      min={filters.dateFrom || dateBounds.min}
-                      max={dateBounds.max}
-                      onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
-                    />
-                  </label>
-                    <label onClick={(e) => e.stopPropagation()}>
-                      Chiều bay
-                      <select value={filters.direction} onChange={(e) => setFilters((f) => ({ ...f, direction: e.target.value as DashboardFilters["direction"] }))}>
-                        <option value="all">Đi và đến</option>
-                        <option value="departure">Chỉ đi từ DAD</option>
-                        <option value="arrival">Chỉ đến DAD</option>
-                      </select>
-                    </label>
-                    <label onClick={(e) => e.stopPropagation()}>
-                      Tuyến bay
-                      <select value={filters.flightScope} onChange={(e) => setFilters((f) => ({ ...f, flightScope: e.target.value as DashboardFilters["flightScope"] }))}>
-                        <option value="all">Tất cả</option>
-                        <option value="domestic">Nội địa</option>
-                        <option value="international">Quốc tế</option>
-                      </select>
-                    </label>
-                    <label onClick={(e) => e.stopPropagation()}>
-                      Hãng hàng không
-                      <select value={filters.airline} onChange={(e) => setFilters((f) => ({ ...f, airline: e.target.value }))}>
-                        <option value="">Tất cả</option>
-                        {airlineOptions.map((a) => (
-                          <option key={a} value={a}>{a}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label onClick={(e) => e.stopPropagation()}>
-                      Điểm khởi hành
-                      <select value={filters.origin} onChange={(e) => setFilters((f) => ({ ...f, origin: e.target.value }))}>
-                        <option value="">Tất cả</option>
-                        {originOptions.map((code) => (
-                          <option key={code} value={code}>{formatAirport(code)}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label onClick={(e) => e.stopPropagation()}>
-                      Quốc gia
-                      <select value={filters.country} onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value, province: "" }))}>
-                        <option value="">Tất cả</option>
-                        {countryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </label>
-                    <label onClick={(e) => e.stopPropagation()}>
-                      Tỉnh/TP
-                      <select value={filters.province} onChange={(e) => setFilters((f) => ({ ...f, province: e.target.value }))}>
-                        <option value="">Tất cả</option>
-                        {provinceOptions.map((p) => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </label>
-                    <label className="search-field" onClick={(e) => e.stopPropagation()}>
-                      Tìm kiếm
-                      <span>
-                        <Search size={13} aria-hidden />
-                        <input
-                          value={filters.search}
-                          onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-                          placeholder="Số hiệu, hãng, chặng bay..."
-                        />
-                      </span>
-                    </label>
-                  </div>
-                </div>
-
-              <div className="active-filters" style={{ marginTop: "12px" }}>
-                {hasActiveDateFilter && (
-                  <span className="filter-chip">
-                    📅 {filters.dateFrom ? formatDate(filters.dateFrom) : "?"}{filters.dateFrom !== filters.dateTo ? ` – ${filters.dateTo ? formatDate(filters.dateTo) : "?"}` : ""}
-                  </span>
-                )}
-                {filters.direction !== "all" && <span className="filter-chip">{filters.direction === "departure" ? "↑ Chỉ đi" : "↓ Chỉ đến"}</span>}
-                {filters.flightScope !== "all" && <span className="filter-chip">🌐 {filters.flightScope === "domestic" ? "Nội địa" : "Quốc tế"}</span>}
-                {filters.airline && <span className="filter-chip">✈ {filters.airline}</span>}
-                {filters.origin && <span className="filter-chip">Từ: {filters.origin}</span>}
-                {filters.country && <span className="filter-chip">{filters.country}</span>}
-                {filters.province && <span className="filter-chip">{filters.province}</span>}
-                {filters.search && <span className="filter-chip">🔍 "{filters.search}"</span>}
+                <FilterInputs
+                  filters={filters}
+                  setFilters={setFilters}
+                  dateBounds={dateBounds}
+                  airlineOptions={airlineOptions}
+                  originOptions={originOptions}
+                  countryOptions={countryOptions}
+                  provinceOptions={provinceOptions}
+                  formatAirport={formatAirport}
+                />
               </div>
+
+              <ActiveFilterChips filters={filters} hasActiveDateFilter={hasActiveDateFilter} />
             </section>
+
+            {/* MOBILE FILTER TRIGGER BAR */}
+            <div className="mobile-filter-bar mobile-only">
+              <div className="mobile-filter-bar-header">
+                <button
+                  type="button"
+                  className="mobile-filter-trigger-btn"
+                  onClick={() => setIsMobileFilterOpen(true)}
+                >
+                  <SlidersHorizontal size={14} />
+                  <span>Bộ lọc</span>
+                  {activeFilterCount > 0 ? (
+                    <span className="mobile-filter-count-badge">{activeFilterCount}</span>
+                  ) : (
+                    <span className="mobile-filter-hint">Tùy chỉnh</span>
+                  )}
+                  <ChevronDown size={14} style={{ marginLeft: "auto", opacity: 0.7 }} />
+                </button>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    className="mobile-filter-reset-btn"
+                    onClick={() => {
+                      const { dateFrom, dateTo } = getDefaultDateRange(datasets);
+                      setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom, dateTo }));
+                    }}
+                  >
+                    <RotateCcw size={12} />
+                    <span>Xóa</span>
+                  </button>
+                )}
+              </div>
+              {hasActiveFilters && (
+                <ActiveFilterChips
+                  filters={filters}
+                  hasActiveDateFilter={hasActiveDateFilter}
+                  onOpenFilter={() => setIsMobileFilterOpen(true)}
+                />
+              )}
+            </div>
 
             {/* SCORE CARDS */}
             <section className="score-grid">
@@ -1117,6 +1279,75 @@ function DashboardContent() {
           </>
         )}
       </div>
+
+      {/* MOBILE FILTER MODAL DRAWER (Bottom Sheet) */}
+      {viewMode === "dashboard" && datasets.length > 0 && isMobileFilterOpen && (
+        <div className="mobile-filter-overlay mobile-only">
+          <div
+            className="mobile-filter-backdrop"
+            onClick={() => setIsMobileFilterOpen(false)}
+          />
+          <div className="mobile-filter-drawer" role="dialog" aria-modal="true">
+            <div className="drawer-handle" />
+            <div className="drawer-header">
+              <div className="drawer-title">
+                <SlidersHorizontal size={16} />
+                <span>Bộ lọc dữ liệu</span>
+                {activeFilterCount > 0 && (
+                  <span className="mobile-filter-count-badge">{activeFilterCount}</span>
+                )}
+              </div>
+              <div className="drawer-header-actions">
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    className="filter-clear-btn"
+                    onClick={() => {
+                      const { dateFrom, dateTo } = getDefaultDateRange(datasets);
+                      setFilters({ ...INITIAL_FILTERS, dateFrom, dateTo });
+                    }}
+                  >
+                    <RotateCcw size={11} style={{ display: "inline", marginRight: 3 }} />
+                    Đặt lại
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="drawer-close-btn"
+                  onClick={() => setIsMobileFilterOpen(false)}
+                  aria-label="Đóng bộ lọc"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="drawer-body">
+              <FilterInputs
+                filters={filters}
+                setFilters={setFilters}
+                dateBounds={dateBounds}
+                airlineOptions={airlineOptions}
+                originOptions={originOptions}
+                countryOptions={countryOptions}
+                provinceOptions={provinceOptions}
+                formatAirport={formatAirport}
+              />
+            </div>
+
+            <div className="drawer-footer">
+              <button
+                type="button"
+                className="drawer-apply-btn"
+                onClick={() => setIsMobileFilterOpen(false)}
+              >
+                <Check size={16} />
+                <span>Áp dụng & Xem kết quả ({formatNumber(filteredRecords.length)} leg)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── CONTENT AREA (SCROLLABLE) ── */}
       {viewMode === "users" ? (
@@ -1133,8 +1364,8 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* TABS + TABLE */}
-          <section className="tabs-panel">
+          {/* TABS + TABLE (Desktop only) */}
+          <section className="tabs-panel desktop-only">
             <div className="tabbar">
               {(["market", "origin", "airline", "leaderboard", "detail"] as TabKey[]).map((tab) => (
                 <button
