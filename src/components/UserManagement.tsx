@@ -31,6 +31,7 @@ import {
   Lock,
   History,
   RotateCcw,
+  Sparkles,
   Laptop,
   Smartphone
 } from 'lucide-react';
@@ -195,6 +196,98 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
     }
   };
 
+  // Find emails that have duplicate account documents
+  const duplicateEmails = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const u of users) {
+      const email = (u.email || '').toLowerCase().trim();
+      if (email) counts.set(email, (counts.get(email) || 0) + 1);
+    }
+    return Array.from(counts.entries()).filter(([_, c]) => c > 1).map(([e]) => e);
+  }, [users]);
+
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
+
+  const handleAutoCleanDuplicates = async () => {
+    if (duplicateEmails.length === 0) {
+      toast.success("Không có tài khoản trùng lặp nào.");
+      return;
+    }
+
+    if (!isSuperAdmin) {
+      toast.error("Chỉ Super Admin mới có quyền dọn dẹp tài khoản.");
+      return;
+    }
+
+    if (!window.confirm(`Phát hiện ${duplicateEmails.length} email có nhiều bản ghi trùng lặp (${duplicateEmails.join(', ')}).\n\nHệ thống sẽ tự động giữ lại tài khoản mới nhất, kế thừa toàn bộ quyền hạn (Admin, mã PIN) và dọn dẹp các bản ghi cũ.\n\nBạn có muốn tiếp tục?`)) {
+      return;
+    }
+
+    setIsCleaningDuplicates(true);
+    let cleanedCount = 0;
+
+    try {
+      for (const dupEmail of duplicateEmails) {
+        const matchingUsers = users.filter(u => (u.email || '').toLowerCase().trim() === dupEmail);
+        if (matchingUsers.length <= 1) continue;
+
+        // Sort: newest createdAt first
+        const sorted = [...matchingUsers].sort((a, b) => {
+          const timeA = a.createdAt?.seconds || 0;
+          const timeB = b.createdAt?.seconds || 0;
+          return timeB - timeA;
+        });
+
+        const keeper = sorted[0];
+        const toDelete = sorted.slice(1);
+
+        // Inherit highest role and status from any existing document
+        const shouldBeAdmin = matchingUsers.some(u => u.role === 'admin' || u.role === 'superadmin' || u.isAdmin || u.isSuperadmin);
+        const shouldBeApproved = matchingUsers.some(u => u.status === 'approved' || u.isApproved);
+        const hasPinSomewhere = matchingUsers.some(u => u.hasPin);
+
+        const updatePayload: Record<string, any> = {
+          updatedAt: serverTimestamp()
+        };
+
+        if (shouldBeAdmin && keeper.role !== 'admin' && keeper.role !== 'superadmin') {
+          updatePayload.role = 'admin';
+          updatePayload.isAdmin = true;
+        }
+        if (shouldBeApproved && keeper.status !== 'approved') {
+          updatePayload.status = 'approved';
+          updatePayload.isApproved = true;
+        }
+        if (hasPinSomewhere && !keeper.hasPin) {
+          updatePayload.hasPin = true;
+        }
+
+        const keeperRef = doc(db, 'PKT_DAD_users', keeper.uid);
+        await updateDoc(keeperRef, updatePayload);
+
+        // Delete duplicates
+        for (const oldUser of toDelete) {
+          try {
+            const oldPinRef = doc(db, 'PKT_DAD_users', oldUser.uid, 'private', 'pin');
+            await deleteDoc(oldPinRef).catch(() => {});
+            const oldUserRef = doc(db, 'PKT_DAD_users', oldUser.uid);
+            await deleteDoc(oldUserRef);
+            cleanedCount++;
+          } catch (err) {
+            console.error("Error deleting duplicate doc:", oldUser.uid, err);
+          }
+        }
+      }
+
+      toast.success(`Đã tự động gộp & dọn dẹp ${cleanedCount} tài khoản trùng lặp thành công!`);
+    } catch (e) {
+      console.error("Error cleaning duplicates:", e);
+      toast.error("Có lỗi xảy ra khi dọn dẹp tài khoản.");
+    } finally {
+      setIsCleaningDuplicates(false);
+    }
+  };
+
   // Stats calculation
   const totalCount = users.length;
   const pendingCount = users.filter(u => u.status === 'pending').length;
@@ -334,6 +427,18 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
             >
               <RotateCcw size={13} />
               <span>Đặt lại</span>
+            </button>
+          )}
+
+          {isSuperAdmin && duplicateEmails.length > 0 && (
+            <button 
+              onClick={handleAutoCleanDuplicates} 
+              disabled={isCleaningDuplicates}
+              className="um-btn-clean-dup"
+              title="Tự động gộp quyền hạn và dọn dẹp tài khoản trùng lặp"
+            >
+              <Sparkles size={14} />
+              <span>{isCleaningDuplicates ? 'Đang dọn...' : `Dọn ${duplicateEmails.length} email trùng`}</span>
             </button>
           )}
         </div>
