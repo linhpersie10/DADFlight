@@ -176,6 +176,21 @@ export function summarizeByMarket(records: FlightLeg[]): SummaryRow[] {
   return Array.from(groups.values()).sort((a, b) => b.passengers - a.passengers);
 }
 
+export function summarizeByCountry(records: FlightLeg[]): SummaryRow[] {
+  const groups = new Map<string, SummaryRow>();
+  for (const record of records) {
+    const airport = getAirportInfo(record.marketAirport);
+    const countryRaw = airport.country || "Khác";
+    const countryVi = getCountryDisplayName(countryRaw);
+    const key = countryRaw;
+    if (!groups.has(key)) {
+      groups.set(key, blankSummary(key, countryVi, countryRaw !== countryVi ? countryRaw : "", countryVi, ""));
+    }
+    addRecord(groups.get(key)!, record);
+  }
+  return Array.from(groups.values()).sort((a, b) => b.passengers - a.passengers);
+}
+
 export function summarizeByOrigin(records: FlightLeg[]): SummaryRow[] {
   const groups = new Map<string, SummaryRow>();
   for (const record of records) {

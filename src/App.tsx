@@ -34,6 +34,7 @@ import {
   formatDate,
   formatNumber,
   summarizeByAirline,
+  summarizeByCountry,
   summarizeByMarket,
   summarizeByOrigin,
   totals,
@@ -71,7 +72,7 @@ const INITIAL_FILTERS: DashboardFilters = {
   flightScope: "all",
 };
 
-type TabKey = "market" | "origin" | "airline" | "detail" | "leaderboard";
+type TabKey = "market" | "country" | "origin" | "airline" | "detail" | "leaderboard";
 
 function getDefaultDateRange(datasets: FlightDataset[]) {
   if (datasets.length === 0) return { dateFrom: "", dateTo: "" };
@@ -426,7 +427,11 @@ function ScoreCard({
   );
 }
 
-function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassengers: number }) {
+function SummaryTable({ rows, maxPassengers, type = "market" }: { rows: SummaryRow[]; maxPassengers: number; type?: TabKey }) {
+  const isCountry = type === "country";
+  const isAirline = type === "airline";
+  const isPoint = !isCountry && !isAirline;
+
   return (
     <>
       <div className="table-wrap">
@@ -434,9 +439,9 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
           <thead>
             <tr>
               <th style={{ width: 36 }}>#</th>
-              <th>Điểm</th>
-              <th>Quốc gia</th>
-              <th>Tỉnh/TP</th>
+              <th>{isCountry ? "Quốc gia" : isAirline ? "Hãng hàng không" : "Điểm"}</th>
+              {isPoint && <th>Quốc gia</th>}
+              {isPoint && <th>Tỉnh/TP</th>}
               <th className="number">Chuyến<span className="unit">(chuyến)</span></th>
               <th className="number">Đến<span className="unit">(chuyến)</span></th>
               <th className="number">Đi<span className="unit">(chuyến)</span></th>
@@ -452,12 +457,12 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
               return (
                 <tr key={row.key} className="mobile-card-row">
                   <td data-label="#"><span className="row-rank">{index + 1}</span></td>
-                  <td data-label="Điểm">
+                  <td data-label={isCountry ? "Quốc gia" : isAirline ? "Hãng" : "Điểm"}>
                     <div className="main-cell">{row.label}</div>
-                    <div className="muted">{row.subLabel}</div>
+                    {row.subLabel && <div className="muted">{row.subLabel}</div>}
                   </td>
-                  <td data-label="Quốc gia" style={{ fontSize: "0.82rem" }}>{row.country || "—"}</td>
-                  <td data-label="Tỉnh/TP" style={{ fontSize: "0.82rem" }}>{row.province || "—"}</td>
+                  {isPoint && <td data-label="Quốc gia" style={{ fontSize: "0.82rem" }}>{row.country || "—"}</td>}
+                  {isPoint && <td data-label="Tỉnh/TP" style={{ fontSize: "0.82rem" }}>{row.province || "—"}</td>}
                   <td data-label="Chuyến" className="number">{formatNumber(row.flightCount)}</td>
                   <td data-label="Đến" className="number">{formatNumber(row.arrivals)}</td>
                   <td data-label="Đi" className="number">{formatNumber(row.departures)}</td>
@@ -474,14 +479,14 @@ function SummaryTable({ rows, maxPassengers }: { rows: SummaryRow[]; maxPassenge
               );
             })}
             {!rows.length && (
-              <tr><td colSpan={11} className="empty-cell">Không có dữ liệu phù hợp với bộ lọc.</td></tr>
+              <tr><td colSpan={isPoint ? 11 : 9} className="empty-cell">Không có dữ liệu phù hợp với bộ lọc.</td></tr>
             )}
           </tbody>
         </table>
       </div>
       {rows.length > 0 && (
         <div className="table-footer">
-          <span>{rows.length} điểm</span>
+          <span>{rows.length} {isCountry ? "quốc gia" : isAirline ? "hãng" : "điểm"}</span>
           <span>Tổng khách: {formatNumber(rows.reduce((s, r) => s + r.passengers, 0))}</span>
         </div>
       )}
@@ -791,9 +796,10 @@ function DashboardContent() {
   }, [filteredRecords]);
 
   const marketRows = useMemo(() => summarizeByMarket(filteredRecords), [filteredRecords, airportsVersion]);
+  const countryRows = useMemo(() => summarizeByCountry(filteredRecords), [filteredRecords, airportsVersion]);
   const originRows = useMemo(() => summarizeByOrigin(filteredRecords), [filteredRecords, airportsVersion]);
   const airlineRows = useMemo(() => summarizeByAirline(filteredRecords), [filteredRecords, airportsVersion]);
-  const maxPassengers = Math.max(0, ...marketRows.map((r) => r.passengers), ...originRows.map((r) => r.passengers), ...airlineRows.map((r) => r.passengers));
+  const maxPassengers = Math.max(0, ...marketRows.map((r) => r.passengers), ...countryRows.map((r) => r.passengers), ...originRows.map((r) => r.passengers), ...airlineRows.map((r) => r.passengers));
 
   // Filter options built from records within current date range
   const rangeRecords = useMemo(
@@ -993,6 +999,7 @@ function DashboardContent() {
 
   const tabRowCounts: Record<TabKey, number> = {
     market: marketRows.length,
+    country: countryRows.length,
     origin: originRows.length,
     airline: airlineRows.length,
     leaderboard: 0,
@@ -1001,6 +1008,7 @@ function DashboardContent() {
 
   const tabRows: Record<TabKey, SummaryRow[]> = {
     market: marketRows,
+    country: countryRows,
     origin: originRows,
     airline: airlineRows,
     leaderboard: [],
@@ -1009,6 +1017,7 @@ function DashboardContent() {
 
   const TAB_LABELS: Record<TabKey, string> = {
     market: "Theo điểm liên quan",
+    country: "Theo quốc gia",
     origin: "Theo điểm khởi hành",
     airline: "Theo hãng",
     leaderboard: "Xếp hạng",
@@ -1324,7 +1333,7 @@ function DashboardContent() {
           {/* TABS + TABLE (Desktop only) */}
           <section className="tabs-panel desktop-only">
             <div className="tabbar">
-              {(["market", "origin", "airline", "leaderboard", "detail"] as TabKey[]).map((tab) => (
+              {(["market", "country", "origin", "airline", "leaderboard", "detail"] as TabKey[]).map((tab) => (
                 <button
                   key={tab}
                   className={activeTab === tab ? "active" : ""}
@@ -1343,7 +1352,7 @@ function DashboardContent() {
             ) : activeTab === "detail" ? (
               <DetailTable records={filteredRecords} />
             ) : (
-              <SummaryTable rows={tabRows[activeTab]} maxPassengers={maxPassengers} />
+              <SummaryTable rows={tabRows[activeTab]} maxPassengers={maxPassengers} type={activeTab} />
             )}
           </section>
         </div>
