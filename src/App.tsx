@@ -1265,14 +1265,14 @@ function DashboardContent() {
 
             {/* SCORE CARDS */}
             <section className="score-grid">
-              <ScoreCard color="cyan" icon={<Plane size={19} />} label="Chuyến bay chuẩn hóa" value={formatNumber(filteredTotals.legs)} detail={`${formatNumber(filteredTotals.sourceRows)} dòng Excel gốc`} />
-              <ScoreCard color="blue" icon={<Users size={19} />} label="Tổng khách bay" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)} · INF ${formatNumber(filteredTotals.infants)}`} />
-              <ScoreCard color="purple" icon={<ArrowDownToLine size={19} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
-              <ScoreCard color="green" icon={<MapPin size={19} />} label="Khách nội địa" value={formatNumber(filteredTotals.domesticPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.domesticPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% tổng khách · ${formatNumber(filteredTotals.domesticLegs)} leg`} />
-              <ScoreCard color="blue" icon={<Globe size={19} />} label="Khách quốc tế" value={formatNumber(filteredTotals.intlPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.intlPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% tổng khách · ${formatNumber(filteredTotals.intlLegs)} leg`} />
-              <ScoreCard color="gold" icon={<Percent size={19} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`Tính trên ${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg bay có cấu hình`} />
-              <ScoreCard color="green" icon={<Trophy size={19} />} label="Quốc gia dẫn đầu (khách)" value={topCountry ? topCountry.countryDisplay : "—"} detail={topCountry ? `${formatNumber(topCountry.passengers)} khách (${topCountry.percentage.toFixed(1)}%) · ${formatNumber(topCountry.legs)} leg` : "Chưa có dữ liệu"} />
-              <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Phạm vi khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
+              <ScoreCard color="cyan" icon={<Plane size={17} />} label="Chuyến bay" value={formatNumber(filteredTotals.legs)} detail={`${formatNumber(filteredTotals.sourceRows)} dòng gốc`} />
+              <ScoreCard color="blue" icon={<Users size={17} />} label="Tổng khách" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)}`} />
+              <ScoreCard color="purple" icon={<ArrowDownToLine size={17} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
+              <ScoreCard color="gold" icon={<Percent size={17} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg cấu hình`} />
+              <ScoreCard color="blue" icon={<Globe size={17} />} label="Khách quốc tế" value={formatNumber(filteredTotals.intlPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.intlPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.intlLegs)} leg`} />
+              <ScoreCard color="green" icon={<MapPin size={17} />} label="Khách nội địa" value={formatNumber(filteredTotals.domesticPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.domesticPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.domesticLegs)} leg`} />
+              <ScoreCard color="green" icon={<Trophy size={17} />} label="Quốc gia top 1" value={topCountry ? topCountry.countryDisplay : "—"} detail={topCountry ? `${formatNumber(topCountry.passengers)} khách (${topCountry.percentage.toFixed(1)}%)` : "Chưa có dữ liệu"} />
+              <ScoreCard color="cyan" icon={<MapPinned size={17} />} label="Mạng khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
             </section>
           </>
         )}
