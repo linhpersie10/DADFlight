@@ -20,13 +20,19 @@ import {
   Check, 
   X, 
   Shield, 
+  ShieldCheck,
   ShieldAlert, 
   Key, 
   ArrowLeft,
-  Clock,
-  UserCheck,
-  UserX,
-  Trash2
+  Clock, 
+  UserCheck, 
+  UserX, 
+  Trash2,
+  Lock,
+  History,
+  RotateCcw,
+  Laptop,
+  Smartphone
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { toast } from 'react-hot-toast';
@@ -38,7 +44,12 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, uid: string, userName: string }>({ isOpen: false, uid: '', userName: '' });
+  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean; uid: string; userName: string; email: string }>({ 
+    isOpen: false, 
+    uid: '', 
+    userName: '',
+    email: ''
+  });
 
   useEffect(() => {
     const q = collection(db, 'PKT_DAD_users');
@@ -87,7 +98,7 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
         isRejected: newStatus === 'rejected',
         updatedAt: serverTimestamp()
       });
-      toast.success(newStatus === 'approved' ? 'Đã phê duyệt tài khoản!' : 'Đã từ chối tài khoản!');
+      toast.success(newStatus === 'approved' ? `Đã kích hoạt tài khoản ${targetUser.displayName}!` : `Đã khóa tài khoản ${targetUser.displayName}!`);
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("Lỗi khi cập nhật trạng thái.");
@@ -116,7 +127,7 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
         isSuperadmin: newRole === 'superadmin',
         updatedAt: serverTimestamp()
       });
-      toast.success('Đã cập nhật vai trò người dùng!');
+      toast.success(`Đã đổi vai trò của ${targetUser.displayName} thành ${newRole === 'superadmin' ? 'Super Admin' : newRole === 'admin' ? 'Admin' : 'Thành viên'}!`);
     } catch (error) {
       console.error("Error updating role:", error);
       toast.error("Lỗi khi cập nhật vai trò.");
@@ -145,7 +156,7 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
         hasPin: deleteField(),
         updatedAt: serverTimestamp()
       });
-      toast.success('Đã đặt lại mã PIN thành công!');
+      toast.success(`Đã xóa mã PIN của ${targetUser.displayName}!`);
     } catch (error) {
       console.error("Error resetting PIN:", error);
       toast.error("Lỗi khi đặt lại mã PIN.");
@@ -166,28 +177,22 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
       return;
     }
 
-    if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản của ${targetUser.displayName} (${targetUser.email}) khỏi Firestore? Hành động này không thể hoàn tác!`)) {
+    if (!window.confirm(`Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản ${targetUser.displayName} (${targetUser.email}) khỏi hệ thống?`)) {
       return;
     }
 
     try {
-      // 1. Delete private subcollection (PIN document)
       const secretRef = doc(db, 'PKT_DAD_users', uid, 'private', 'pin');
-      await deleteDoc(secretRef).catch(() => {}); // ignore if it doesn't exist
+      await deleteDoc(secretRef).catch(() => {});
 
-      // 2. Delete main user document
       const userRef = doc(db, 'PKT_DAD_users', uid);
       await deleteDoc(userRef);
 
-      toast.success('Đã xóa tài khoản thành công!');
+      toast.success(`Đã xóa vĩnh viễn tài khoản ${targetUser.displayName}!`);
     } catch (error) {
       console.error("Error deleting user:", error);
       toast.error("Lỗi khi xóa tài khoản.");
     }
-  };
-
-  const handleViewHistory = (uid: string, userName: string) => {
-    setHistoryModal({ isOpen: true, uid, userName });
   };
 
   // Stats calculation
@@ -200,8 +205,8 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
   const filteredUsers = users.filter((u) => {
     const queryStr = search.trim().toLowerCase();
     const matchesSearch = 
-      u.displayName.toLowerCase().includes(queryStr) || 
-      u.email.toLowerCase().includes(queryStr);
+      (u.displayName || '').toLowerCase().includes(queryStr) || 
+      (u.email || '').toLowerCase().includes(queryStr);
     
     const matchesRole = 
       roleFilter === 'all' || 
@@ -215,299 +220,315 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
   });
 
   return (
-    <div className="user-management-panel" style={{ animation: 'slideDown 0.25s ease' }}>
-      {/* Header */}
-      <div className="um-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={onBack} className="preset-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px' }}>
-            <ArrowLeft size={14} />
-            <span>Dashboard</span>
+    <div className="um-container">
+      {/* ── TOP HEADER / NAVIGATION BAR ── */}
+      <div className="um-header-card">
+        <div className="um-header-left">
+          <button onClick={onBack} className="um-btn-back" title="Quay lại bảng dữ liệu Dashboard">
+            <ArrowLeft size={15} />
+            <span>Về Dashboard</span>
           </button>
-          <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Quản lý Thành viên & Phân quyền</h2>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>Phê duyệt tài khoản mới và thiết lập quyền truy cập hệ thống DADFlight</p>
+          <div className="um-header-text">
+            <h2>Quản lý Người dùng & Phân quyền</h2>
+            <p>Kiểm soát quyền truy cập, xét duyệt tài khoản và quản trị bảo mật hệ thống</p>
           </div>
         </div>
-        <div className="um-active-badge" style={{ background: 'rgba(0, 212, 255, 0.08)', border: '1px solid rgba(0, 212, 255, 0.2)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', fontSize: '0.72rem', color: 'var(--accent-cyan)', fontWeight: 600 }}>
-          {isSuperAdmin ? 'CẤP QUYỀN: SUPER ADMIN' : 'CẤP QUYỀN: ADMIN'}
-        </div>
-      </div>
-
-      {/* Overview stats */}
-      <div className="score-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
-        <div className="score-card color-blue">
-          <div className="score-icon color-blue"><UsersIcon size={18} /></div>
-          <div>
-            <div className="score-label">Tổng thành viên</div>
-            <div className="score-value">{totalCount}</div>
-            <div className="score-detail">Tài khoản Google liên kết</div>
+        <div className="um-header-right">
+          <div className={`um-role-pill ${isSuperAdmin ? 'superadmin' : 'admin'}`}>
+            <ShieldCheck size={14} />
+            <span>{isSuperAdmin ? 'Cấp quyền: Super Admin' : 'Cấp quyền: Admin'}</span>
           </div>
-        </div>
-        <div className="score-card color-gold">
-          <div className="score-icon color-gold"><Clock size={18} /></div>
-          <div>
-            <div className="score-label">Chờ phê duyệt</div>
-            <div className="score-value" style={{ color: pendingCount > 0 ? 'var(--accent-gold)' : 'var(--text-primary)' }}>{pendingCount}</div>
-            <div className="score-detail">Cần phê duyệt truy cập</div>
-          </div>
-        </div>
-        <div className="score-card color-green">
-          <div className="score-icon color-green"><UserCheck size={18} /></div>
-          <div>
-            <div className="score-label">Đã hoạt động</div>
-            <div className="score-value">{approvedCount}</div>
-            <div className="score-detail">Tài khoản được truy cập</div>
-          </div>
-        </div>
-        <div className="score-card color-purple">
-          <div className="score-icon color-purple"><Shield size={18} /></div>
-          <div>
-            <div className="score-label">Quản trị viên</div>
-            <div className="score-value">{adminCount}</div>
-            <div className="score-detail">Admin & Superadmin</div>
+          <div className="um-stat-pill">
+            <UsersIcon size={13} />
+            <span>{totalCount} tài khoản</span>
           </div>
         </div>
       </div>
 
-      {/* Search & Filters */}
-      <div className="um-filters" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', background: 'rgba(0, 0, 0, 0.15)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
-          <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-            <Search size={14} />
-          </span>
+      {/* ── OVERVIEW METRICS GRID ── */}
+      <div className="um-stats-grid">
+        <div className="um-stat-card color-blue">
+          <div className="um-stat-icon color-blue"><UsersIcon size={18} /></div>
+          <div className="um-stat-info">
+            <span className="um-stat-label">Tổng thành viên</span>
+            <span className="um-stat-value">{totalCount}</span>
+            <span className="um-stat-desc">Tài khoản Google liên kết</span>
+          </div>
+        </div>
+
+        <div className={`um-stat-card color-gold ${pendingCount > 0 ? 'is-alert' : ''}`}>
+          <div className="um-stat-icon color-gold"><Clock size={18} /></div>
+          <div className="um-stat-info">
+            <span className="um-stat-label">Chờ phê duyệt</span>
+            <span className="um-stat-value" style={{ color: pendingCount > 0 ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
+              {pendingCount}
+            </span>
+            <span className="um-stat-desc">{pendingCount > 0 ? 'Cần xét duyệt truy cập' : 'Không có yêu cầu mới'}</span>
+          </div>
+        </div>
+
+        <div className="um-stat-card color-green">
+          <div className="um-stat-icon color-green"><UserCheck size={18} /></div>
+          <div className="um-stat-info">
+            <span className="um-stat-label">Đang hoạt động</span>
+            <span className="um-stat-value">{approvedCount}</span>
+            <span className="um-stat-desc">Đã cấp quyền truy cập</span>
+          </div>
+        </div>
+
+        <div className="um-stat-card color-purple">
+          <div className="um-stat-icon color-purple"><Shield size={18} /></div>
+          <div className="um-stat-info">
+            <span className="um-stat-label">Quản trị viên</span>
+            <span className="um-stat-value">{adminCount}</span>
+            <span className="um-stat-desc">Admin & Super Admin</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── SEARCH & FILTERS TOOLBAR ── */}
+      <div className="um-toolbar">
+        <div className="um-search-box">
+          <Search size={15} className="um-search-icon" />
           <input
             type="text"
-            placeholder="Tìm theo tên hoặc địa chỉ email..."
+            placeholder="Tìm kiếm theo tên người dùng hoặc địa chỉ email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: '32px', minHeight: '36px' }}
           />
+          {search && (
+            <button className="um-search-clear" onClick={() => setSearch('')} title="Xóa tìm kiếm">
+              <X size={14} />
+            </button>
+          )}
         </div>
-        <div style={{ width: '150px' }}>
-          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} style={{ minHeight: '36px' }}>
-            <option value="all">Mọi vai trò</option>
+
+        <div className="um-filters-group">
+          <select 
+            value={roleFilter} 
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="um-select"
+          >
+            <option value="all">Tất cả vai trò</option>
             <option value="user">Thành viên</option>
             <option value="admin">Quản trị (Admin)</option>
             <option value="superadmin">Super Admin</option>
           </select>
-        </div>
-        <div style={{ width: '150px' }}>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ minHeight: '36px' }}>
-            <option value="all">Mọi trạng thái</option>
+
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="um-select"
+          >
+            <option value="all">Tất cả trạng thái</option>
             <option value="pending">Chờ phê duyệt</option>
             <option value="approved">Đã hoạt động</option>
-            <option value="rejected">Bị từ chối</option>
+            <option value="rejected">Bị từ chối / Khóa</option>
           </select>
+
+          {(search || roleFilter !== 'all' || statusFilter !== 'all') && (
+            <button 
+              onClick={() => { setSearch(''); setRoleFilter('all'); setStatusFilter('all'); }} 
+              className="um-btn-reset"
+              title="Đặt lại bộ lọc"
+            >
+              <RotateCcw size={13} />
+              <span>Đặt lại</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Users table */}
-      <div className="table-wrapper" style={{ overflowX: 'auto', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)' }}>
+      {/* ── USERS TABLE CARD ── */}
+      <div className="um-table-card">
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '60px' }}>
+          <div className="um-loading">
             <div className="spinner" />
+            <p>Đang tải danh sách người dùng...</p>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
-            <UserX size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
-            <p>Không tìm thấy thành viên nào khớp với điều kiện lọc.</p>
+          <div className="um-empty">
+            <UserX size={36} opacity={0.3} />
+            <h4>Không tìm thấy người dùng</h4>
+            <p>Không có kết quả nào phù hợp với từ khóa hoặc điều kiện lọc hiện tại.</p>
           </div>
         ) : (
-          <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Người dùng</th>
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Ngày tham gia</th>
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Vai trò</th>
-                <th style={{ textAlign: 'center', padding: '12px 16px', width: '120px' }}>Trạng thái</th>
-                <th style={{ textAlign: 'left', padding: '12px 16px' }}>Data Collection</th>
-                <th style={{ textAlign: 'center', padding: '12px 16px', width: '140px' }}>Lịch sử truy cập</th>
-                <th style={{ textAlign: 'center', padding: '12px 16px', width: '100px' }}>Bảo mật PIN</th>
-                <th style={{ textAlign: 'right', padding: '12px 16px', width: '220px' }}>Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((u) => {
-                const isSelf = u.uid === profile?.uid;
-                const isDefaultSuperAdmin = u.email === 'linh.persie.10@gmail.com';
-                const showActions = !isSelf && !isDefaultSuperAdmin;
-                
-                // Formatted date string
-                let dateStr = "—";
-                if (u.createdAt) {
-                  const d = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
-                  dateStr = d.toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' });
-                }
+          <div className="um-table-wrap">
+            <table className="um-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '30%' }}>Thành viên</th>
+                  <th style={{ width: '16%' }}>Vai trò</th>
+                  <th style={{ width: '13%', textAlign: 'center' }}>Trạng thái</th>
+                  <th style={{ width: '11%', textAlign: 'center' }}>Mã PIN</th>
+                  <th style={{ width: '15%' }}>Hoạt động gần nhất</th>
+                  <th style={{ width: '15%', textAlign: 'right' }}>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((u) => {
+                  const isSelf = u.uid === profile?.uid;
+                  const isDefaultSuperAdmin = u.email === 'linh.persie.10@gmail.com';
+                  const showActions = !isSelf && !isDefaultSuperAdmin;
 
-                return (
-                  <tr key={u.uid} style={{ borderBottom: '1px solid var(--border-subtle)', background: u.status === 'pending' ? 'rgba(245, 158, 11, 0.02)' : 'transparent' }}>
-                    {/* User profile details */}
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <img 
-                          src={u.photoURL} 
-                          alt={u.displayName} 
-                          referrerPolicy="no-referrer"
-                          style={{ width: '30px', height: '30px', borderRadius: '50%', border: '1px solid var(--border-subtle)', background: 'rgba(255,255,255,0.05)' }} 
-                        />
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                            {u.displayName} {isSelf && <span style={{ fontSize: '0.68rem', color: 'var(--accent-cyan)', background: 'rgba(0, 212, 255, 0.08)', padding: '1px 5px', borderRadius: '3px', marginLeft: '4px' }}>Tôi</span>}
-                          </span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{u.email}</span>
+                  // Format dates
+                  let lastActiveStr = "Chưa đăng nhập";
+                  if (u.lastLoginAt) {
+                    const d = u.lastLoginAt.toDate ? u.lastLoginAt.toDate() : new Date(u.lastLoginAt);
+                    lastActiveStr = d.toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                  } else if (u.createdAt) {
+                    const d = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+                    lastActiveStr = "Tham gia " + d.toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' });
+                  }
+
+                  return (
+                    <tr key={u.uid} className={`um-row ${u.status === 'pending' ? 'is-pending' : ''}`}>
+                      {/* USER INFO */}
+                      <td>
+                        <div className="um-user-cell">
+                          <img 
+                            src={u.photoURL || 'https://lh3.googleusercontent.com/a/default-user'} 
+                            alt={u.displayName} 
+                            referrerPolicy="no-referrer"
+                            className="um-user-avatar"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://lh3.googleusercontent.com/a/default-user';
+                            }}
+                          />
+                          <div className="um-user-meta">
+                            <div className="um-user-name">
+                              <span>{u.displayName || "Chưa đặt tên"}</span>
+                              {isSelf && <span className="um-self-tag">Tôi</span>}
+                              {isDefaultSuperAdmin && <span className="um-root-tag">Root</span>}
+                            </div>
+                            <div className="um-user-email">{u.email}</div>
+                          </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Join Date */}
-                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{dateStr}</td>
-
-                    {/* Role dropdown */}
-                    <td style={{ padding: '12px 16px' }}>
-                      {isSelf || isDefaultSuperAdmin || !isSuperAdmin ? (
-                        <span style={{ textTransform: 'capitalize', color: u.role === 'superadmin' ? 'var(--accent-purple)' : u.role === 'admin' ? 'var(--accent-cyan)' : 'var(--text-secondary)', fontWeight: u.role !== 'user' ? 600 : 400 }}>
-                          {u.role === 'superadmin' ? 'Super Admin' : u.role === 'admin' ? 'Admin' : 'Thành viên'}
-                        </span>
-                      ) : (
-                        <select 
-                          value={u.role || 'user'} 
-                          onChange={(e) => handleUpdateRole(u.uid, e.target.value as any)}
-                          style={{ minHeight: '28px', padding: '2px 8px', fontSize: '0.8rem', width: '130px', margin: 0 }}
-                        >
-                          <option value="user">Thành viên</option>
-                          <option value="admin">Quản trị (Admin)</option>
-                          <option value="superadmin">Super Admin</option>
-                        </select>
-                      )}
-                    </td>
-
-                    {/* Status Badge */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <span className={`status-badge ${u.status || 'pending'}`} style={{
-                        display: 'inline-block',
-                        padding: '3px 8px',
-                        borderRadius: '99px',
-                        fontSize: '0.68rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.03em',
-                        textAlign: 'center',
-                        minWidth: '85px',
-                        border: '1px solid transparent',
-                        background: u.status === 'approved' ? 'rgba(16, 185, 129, 0.08)' : u.status === 'rejected' ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-                        color: u.status === 'approved' ? 'var(--accent-green)' : u.status === 'rejected' ? 'var(--accent-red)' : 'var(--accent-gold)',
-                        borderColor: u.status === 'approved' ? 'rgba(16, 185, 129, 0.2)' : u.status === 'rejected' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                      }}>
-                        {u.status === 'approved' ? 'Đã duyệt' : u.status === 'rejected' ? 'Bị từ chối' : 'Chờ duyệt'}
-                      </span>
-                    </td>
-
-                    {/* Data Collection */}
-                    <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', background: 'rgba(0,0,0,0.1)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }} title="Data Collection - Firebase UID">
-                          PKT_DAD_users/{u.uid}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Access History */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {u.lastLoginAt ? (u.lastLoginAt.toDate ? u.lastLoginAt.toDate().toLocaleDateString("vi-VN") : new Date(u.lastLoginAt).toLocaleDateString("vi-VN")) : "Chưa có"}
-                        </span>
-                        {isAdmin && (
-                          <button 
-                            onClick={() => handleViewHistory(u.uid, u.displayName)}
-                            className="preset-btn"
-                            style={{ padding: '2px 8px', fontSize: '0.7rem', background: 'rgba(0, 212, 255, 0.08)', color: 'var(--accent-cyan)', border: '1px solid rgba(0, 212, 255, 0.2)' }}
-                            title="Xem chi tiết lịch sử"
-                          >
-                            Xem lịch sử
-                          </button>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* PIN status */}
-                    <td style={{ padding: '12px 16px', textAlign: 'center', color: u.hasPin ? 'var(--accent-green)' : 'var(--text-muted)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                        <Key size={12} style={{ opacity: u.hasPin ? 1 : 0.4 }} />
-                        <span style={{ fontSize: '0.72rem' }}>{u.hasPin ? "Đã đặt" : "Chưa đặt"}</span>
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                        {/* Status approval buttons */}
-                        {showActions && (
-                          <>
-                            {u.status !== 'approved' && (
-                              <button 
-                                onClick={() => handleUpdateStatus(u.uid, 'approved')} 
-                                className="preset-btn"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', fontSize: '0.75rem', borderColor: 'rgba(16, 185, 129, 0.3)', color: 'var(--accent-green)', background: 'rgba(16, 185, 129, 0.04)' }}
-                                title="Phê duyệt truy cập"
-                              >
-                                <Check size={12} />
-                                <span>Duyệt</span>
-                              </button>
+                      {/* ROLE */}
+                      <td>
+                        {isSelf || isDefaultSuperAdmin || !isSuperAdmin ? (
+                          <div className={`um-role-badge ${u.role || 'user'}`}>
+                            {u.role === 'superadmin' ? (
+                              <><ShieldAlert size={13} /><span>Super Admin</span></>
+                            ) : u.role === 'admin' ? (
+                              <><Shield size={13} /><span>Admin</span></>
+                            ) : (
+                              <><UsersIcon size={13} /><span>Thành viên</span></>
                             )}
-                            {u.status !== 'rejected' && (
-                              <button 
-                                onClick={() => handleUpdateStatus(u.uid, 'rejected')} 
-                                className="preset-btn"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.3)', color: 'var(--accent-red)', background: 'rgba(239, 68, 68, 0.04)' }}
-                                title="Từ chối/Khóa tài khoản"
-                              >
-                                <X size={12} />
-                                <span>Khóa</span>
-                              </button>
-                            )}
-                          </>
-                        )}
-                        
-                        {/* Reset PIN button */}
-                        {u.hasPin && (isSelf || showActions) && (
-                          <button 
-                            onClick={() => handleResetPin(u.uid)} 
-                            className="preset-btn"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', fontSize: '0.75rem' }}
-                            title="Xóa mã PIN cũ để yêu cầu người dùng cài đặt lại"
+                          </div>
+                        ) : (
+                          <select 
+                            value={u.role || 'user'} 
+                            onChange={(e) => handleUpdateRole(u.uid, e.target.value as any)}
+                            className={`um-role-select ${u.role || 'user'}`}
                           >
-                            <Key size={12} />
-                            <span>Reset PIN</span>
-                          </button>
+                            <option value="user">Thành viên</option>
+                            <option value="admin">Quản trị (Admin)</option>
+                            <option value="superadmin">Super Admin</option>
+                          </select>
                         )}
+                      </td>
 
-                        {/* Delete User button (Super Admin only) */}
-                        {isSuperAdmin && showActions && (
-                          <button 
-                            onClick={() => handleDeleteUser(u.uid)} 
-                            className="preset-btn"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 8px', fontSize: '0.75rem', borderColor: 'rgba(239, 68, 68, 0.4)', color: 'var(--accent-red)', background: 'rgba(239, 68, 68, 0.04)' }}
-                            title="Xóa vĩnh viễn tài khoản này khỏi Firestore"
-                          >
-                            <Trash2 size={12} />
-                            <span>Xóa</span>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {/* STATUS */}
+                      <td style={{ textAlign: 'center' }}>
+                        <span className={`um-status-pill ${u.status || 'pending'}`}>
+                          <span className="um-status-dot" />
+                          {u.status === 'approved' ? 'Đã kích hoạt' : u.status === 'rejected' ? 'Đã khóa' : 'Chờ duyệt'}
+                        </span>
+                      </td>
+
+                      {/* PIN STATUS */}
+                      <td style={{ textAlign: 'center' }}>
+                        <span className={`um-pin-pill ${u.hasPin ? 'active' : 'inactive'}`}>
+                          <Key size={12} />
+                          <span>{u.hasPin ? 'Đã tạo' : 'Chưa đặt'}</span>
+                        </span>
+                      </td>
+
+                      {/* LAST ACTIVE & HISTORY */}
+                      <td>
+                        <div className="um-history-cell">
+                          <span className="um-time-text">{lastActiveStr}</span>
+                          {isAdmin && (
+                            <button 
+                              onClick={() => setHistoryModal({ isOpen: true, uid: u.uid, userName: u.displayName || u.email, email: u.email })}
+                              className="um-btn-history"
+                              title="Xem nhật ký truy cập"
+                            >
+                              <History size={12} />
+                              <span>Nhật ký</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="um-actions-cluster">
+                          {/* Approval / Lock toggles */}
+                          {showActions && u.status !== 'approved' && (
+                            <button 
+                              onClick={() => handleUpdateStatus(u.uid, 'approved')} 
+                              className="um-action-btn btn-approve"
+                              title="Phê duyệt quyền truy cập"
+                            >
+                              <Check size={13} />
+                              <span>Duyệt</span>
+                            </button>
+                          )}
+
+                          {showActions && u.status === 'approved' && (
+                            <button 
+                              onClick={() => handleUpdateStatus(u.uid, 'rejected')} 
+                              className="um-action-btn btn-lock"
+                              title="Khóa truy cập của tài khoản này"
+                            >
+                              <Lock size={12} />
+                              <span>Khóa</span>
+                            </button>
+                          )}
+
+                          {/* Reset PIN */}
+                          {u.hasPin && (isSelf || showActions) && (
+                            <button 
+                              onClick={() => handleResetPin(u.uid)} 
+                              className="um-action-btn btn-pin"
+                              title="Xóa mã PIN hiện tại (yêu cầu người dùng đặt lại)"
+                            >
+                              <Key size={12} />
+                              <span>Reset PIN</span>
+                            </button>
+                          )}
+
+                          {/* Delete (Superadmin only) */}
+                          {isSuperAdmin && showActions && (
+                            <button 
+                              onClick={() => handleDeleteUser(u.uid)} 
+                              className="um-action-btn btn-delete"
+                              title="Xóa vĩnh viễn tài khoản khỏi Firestore"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
+      {/* ── ACCESS HISTORY MODAL ── */}
       {historyModal.isOpen && (
         <AccessHistoryModal 
           uid={historyModal.uid} 
           userName={historyModal.userName} 
+          email={historyModal.email}
           onClose={() => setHistoryModal({ ...historyModal, isOpen: false })} 
         />
       )}
@@ -515,7 +536,17 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
   );
 }
 
-function AccessHistoryModal({ uid, userName, onClose }: { uid: string, userName: string, onClose: () => void }) {
+function AccessHistoryModal({ 
+  uid, 
+  userName, 
+  email, 
+  onClose 
+}: { 
+  uid: string; 
+  userName: string; 
+  email: string; 
+  onClose: () => void; 
+}) {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -525,14 +556,14 @@ function AccessHistoryModal({ uid, userName, onClose }: { uid: string, userName:
         const q = query(
           collection(db, 'PKT_DAD_users', uid, 'access_history'),
           orderBy('timestamp', 'desc'),
-          limit(30)
+          limit(40)
         );
         const snap = await getDocs(q);
         const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setHistory(data);
       } catch (err) {
         console.error(err);
-        toast.error('Lỗi khi tải lịch sử truy cập');
+        toast.error('Lỗi khi tải nhật ký truy cập');
       } finally {
         setLoading(false);
       }
@@ -541,52 +572,71 @@ function AccessHistoryModal({ uid, userName, onClose }: { uid: string, userName:
   }, [uid]);
 
   return (
-    <div className="modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }} onClick={onClose}>
-      <div className="modal-content" style={{ background: 'var(--bg-panel)', padding: '20px', borderRadius: 'var(--radius-lg)', width: '90%', maxWidth: '500px', border: '1px solid var(--border-subtle)' }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>Lịch sử truy cập - {userName}</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-            <X size={20} />
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="um-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="um-modal-header">
+          <div className="um-modal-title">
+            <History size={18} className="um-modal-icon" />
+            <div>
+              <h3>Nhật ký truy cập hệ thống</h3>
+              <p>{userName} <span className="um-modal-email">({email})</span></p>
+            </div>
+          </div>
+          <button onClick={onClose} className="um-modal-close" aria-label="Đóng">
+            <X size={18} />
           </button>
         </div>
         
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px' }}>
-            <div className="spinner" style={{ margin: '0 auto' }} />
-          </div>
-        ) : history.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-            Không có dữ liệu truy cập.
-          </div>
-        ) : (
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-              <thead>
-                <tr>
-                  <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Thời gian</th>
-                  <th style={{ textAlign: 'left', padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>Thiết bị / Trình duyệt</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map(item => {
-                  let timeStr = '—';
-                  if (item.timestamp) {
-                    const d = item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
-                    timeStr = d.toLocaleString('vi-VN');
-                  }
-                  return (
-                    <tr key={item.id}>
-                      <td style={{ padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-primary)' }}>{timeStr}</td>
-                      <td style={{ padding: '10px', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-muted)', maxWidth: '250px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.userAgent}>
-                        {item.userAgent || 'Không xác định'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div className="um-modal-body">
+          {loading ? (
+            <div className="um-modal-loading">
+              <div className="spinner" />
+              <p>Đang tải nhật ký...</p>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="um-modal-empty">
+              <Clock size={32} opacity={0.3} />
+              <p>Chưa ghi nhận lượt truy cập nào từ tài khoản này.</p>
+            </div>
+          ) : (
+            <div className="um-modal-table-wrap">
+              <table className="um-modal-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '35%' }}>Thời gian</th>
+                    <th style={{ width: '45%' }}>Thiết bị / Trình duyệt</th>
+                    <th style={{ width: '20%', textAlign: 'right' }}>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((item) => {
+                    let timeStr = '—';
+                    if (item.timestamp) {
+                      const d = item.timestamp.toDate ? item.timestamp.toDate() : new Date(item.timestamp);
+                      timeStr = d.toLocaleString('vi-VN');
+                    }
+                    const isMobile = (item.userAgent || '').toLowerCase().includes('mobile') || (item.userAgent || '').toLowerCase().includes('android') || (item.userAgent || '').toLowerCase().includes('iphone');
+
+                    return (
+                      <tr key={item.id}>
+                        <td className="um-log-time">{timeStr}</td>
+                        <td className="um-log-device" title={item.userAgent}>
+                          <div className="um-device-cell">
+                            {isMobile ? <Smartphone size={14} /> : <Laptop size={14} />}
+                            <span>{item.userAgent ? item.userAgent.slice(0, 50) + '...' : 'Không xác định'}</span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <span className="um-log-success-badge">Thành công</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
