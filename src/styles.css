@@ -1950,12 +1950,12 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
     display: none !important;
   }
 
-  /* Scorecards: 2-Column responsive grid on mobile */
+  /* Scorecards: 2-Column responsive grid on mobile with +25-30% enhanced size */
   .score-grid { 
     display: grid !important;
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
-    margin-bottom: 14px !important;
+    gap: 10px !important;
+    margin-bottom: 16px !important;
     overflow: visible !important;
     padding: 0 !important;
     margin-right: 0 !important;
@@ -1963,66 +1963,80 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
 
   .score-card {
     min-width: 0 !important;
-    padding: 10px 8px !important;
+    min-height: 112px !important;
+    padding: 14px 12px !important;
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 4px !important;
-    border-radius: var(--radius-md) !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
     background: var(--bg-card) !important;
     transform: none !important;
   }
 
   .score-card .score-icon {
-    width: 26px !important;
-    height: 26px !important;
+    width: 34px !important;
+    height: 34px !important;
     border-radius: var(--radius-sm) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 3px 8px rgba(0, 0, 0, 0.3) !important;
   }
 
   .score-card .score-icon svg {
-    width: 14px !important;
-    height: 14px !important;
+    width: 17px !important;
+    height: 17px !important;
   }
 
   .score-card .score-label {
-    font-size: 0.63rem !important;
-    letter-spacing: 0.03em !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
     white-space: normal !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
   }
 
   .score-card .score-value {
-    font-size: 1.18rem !important;
+    font-size: 1.45rem !important;
     font-weight: 800 !important;
-    margin-top: 1px !important;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
     line-height: 1.15 !important;
     white-space: normal !important;
     word-break: break-word !important;
   }
 
   .score-card .score-detail {
-    font-size: 0.65rem !important;
-    line-height: 1.2 !important;
+    font-size: 0.76rem !important;
+    line-height: 1.25 !important;
     margin-top: 1px !important;
-    color: var(--text-muted) !important;
+    color: var(--text-secondary) !important;
   }
 }
 
 @media (max-width: 380px) {
   .score-grid {
     grid-template-columns: 1fr !important;
-    gap: 8px !important;
+    gap: 10px !important;
   }
 
   .score-card {
     flex-direction: row !important;
     align-items: center !important;
+    min-height: 80px !important;
     gap: 12px !important;
-    padding: 10px 12px !important;
+    padding: 12px 14px !important;
   }
 
   .score-card .score-value {
-    font-size: 1.15rem !important;
+    font-size: 1.4rem !important;
+  }
+
+  .score-card .score-label {
+    font-size: 0.75rem !important;
+  }
+
+  .score-card .score-detail {
+    font-size: 0.75rem !important;
   }
 }
 

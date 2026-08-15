@@ -109,6 +109,12 @@ service cloud.firestore {
       match /private/{document=**} {
         allow read, write: if isEmergencySuperAdmin() || ((isOwner(userId)) && isEmergencySystemActive());
       }
+
+      // Subcollection access_history (contains user login history)
+      match /access_history/{document=**} {
+        allow read: if isEmergencySuperAdmin() || ((isOwner(userId) || (isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid)))) && isEmergencySystemActive());
+        allow write: if isEmergencySuperAdmin() || ((isOwner(userId) || (isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid)))) && isEmergencySystemActive());
+      }
     }
 
     // PKT_DAD_datasets rules
@@ -127,6 +133,12 @@ service cloud.firestore {
     match /PKT_DAD_dataset_records/{datasetId} {
       allow read: if isEmergencySuperAdmin() || ((isSignedIn() && (isApproved(request.auth.uid) || isOwner(request.auth.uid))) && isEmergencySystemActive());
       allow write: if isEmergencySuperAdmin() || ((isSignedIn() && (isAdmin(request.auth.uid) || isSuperadmin(request.auth.uid))) && isEmergencySystemActive());
+    }
+
+    // dynamic_airports rules
+    match /dynamic_airports/{airportCode} {
+      allow read: if isEmergencySuperAdmin() || (isSignedIn() && isEmergencySystemActive());
+      allow write: if isEmergencySuperAdmin() || (isSignedIn() && isEmergencySystemActive());
     }
   }
 }
