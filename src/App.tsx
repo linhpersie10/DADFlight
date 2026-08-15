@@ -39,7 +39,7 @@ import {
   totals,
   getAircraftCapacity,
   calculateOccupancy,
-  getTopCountry,
+  getTopInternationalCountry,
 } from "./analytics";
 import { parseFlightExcel } from "./excelParser";
 import { saveDatasetToCloud, deleteDatasetFromCloud, fetchDatasetLegs } from "./storage";
@@ -768,7 +768,7 @@ function DashboardContent() {
 
   const filteredRecords = useMemo(() => filterRecords(allRecords, filters), [allRecords, filters, airportsVersion]);
   const filteredTotals = useMemo(() => totals(filteredRecords), [filteredRecords, airportsVersion]);
-  const topCountry = useMemo(() => getTopCountry(filteredRecords), [filteredRecords, airportsVersion]);
+  const topIntlCountry = useMemo(() => getTopInternationalCountry(filteredRecords), [filteredRecords, airportsVersion]);
 
   const overallOccupancy = useMemo(() => {
     let totalSeats = 0;
@@ -1271,7 +1271,7 @@ function DashboardContent() {
               <ScoreCard color="gold" icon={<Percent size={17} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg cấu hình`} />
               <ScoreCard color="blue" icon={<Globe size={17} />} label="Khách quốc tế" value={formatNumber(filteredTotals.intlPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.intlPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.intlLegs)} leg`} />
               <ScoreCard color="green" icon={<MapPin size={17} />} label="Khách nội địa" value={formatNumber(filteredTotals.domesticPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.domesticPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.domesticLegs)} leg`} />
-              <ScoreCard color="green" icon={<Trophy size={17} />} label="Quốc gia top 1" value={topCountry ? topCountry.countryDisplay : "—"} detail={topCountry ? `${formatNumber(topCountry.passengers)} khách (${topCountry.percentage.toFixed(1)}%)` : "Chưa có dữ liệu"} />
+              <ScoreCard color="green" icon={<Trophy size={17} />} label="Quốc tế Top 1" value={topIntlCountry ? topIntlCountry.countryDisplay : "—"} detail={topIntlCountry ? `${formatNumber(topIntlCountry.passengers)} khách (${topIntlCountry.percentage.toFixed(1)}% QT)` : "Chưa có dữ liệu"} />
               <ScoreCard color="cyan" icon={<MapPinned size={17} />} label="Mạng khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
             </section>
           </>

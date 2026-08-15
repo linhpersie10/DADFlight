@@ -467,16 +467,25 @@ export interface TopCountryResult {
 }
 
 export function getTopCountry(records: FlightLeg[]): TopCountryResult | null {
-  if (records.length === 0) return null;
-  const groups = new Map<string, { passengers: number; legs: number }>();
-  let totalPax = 0;
+  return getTopInternationalCountry(records);
+}
 
-  for (const record of records) {
+export function getTopInternationalCountry(records: FlightLeg[]): TopCountryResult | null {
+  const intlRecords = records.filter(r => {
+    const country = getAirportInfo(r.marketAirport).country;
+    return country && country !== "Vietnam";
+  });
+
+  if (intlRecords.length === 0) return null;
+  const groups = new Map<string, { passengers: number; legs: number }>();
+  let totalIntlPax = 0;
+
+  for (const record of intlRecords) {
     const country = getAirportInfo(record.marketAirport).country || "Khác";
     const existing = groups.get(country) || { passengers: 0, legs: 0 };
     existing.passengers += record.passengerTotal;
     existing.legs += 1;
-    totalPax += record.passengerTotal;
+    totalIntlPax += record.passengerTotal;
     groups.set(country, existing);
   }
 
@@ -489,6 +498,6 @@ export function getTopCountry(records: FlightLeg[]): TopCountryResult | null {
     countryDisplay: getCountryDisplayName(topCountry),
     passengers: data.passengers,
     legs: data.legs,
-    percentage: totalPax > 0 ? (data.passengers / totalPax) * 100 : 0,
+    percentage: totalIntlPax > 0 ? (data.passengers / totalIntlPax) * 100 : 0,
   };
 }
