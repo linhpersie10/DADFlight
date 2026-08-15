@@ -31,7 +31,6 @@ import {
   Lock,
   History,
   RotateCcw,
-  Sparkles,
   Laptop,
   Smartphone
 } from 'lucide-react';
@@ -54,25 +53,120 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     const q = collection(db, 'PKT_DAD_users');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const userList: UserProfile[] = [];
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const rawUserList: UserProfile[] = [];
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        userList.push({
+        rawUserList.push({
           uid: docSnap.id,
           ...data,
         } as UserProfile);
       });
+
+      // ── BACKEND AUTO-DEDUPLICATION & MERGE LOGIC ──
+      const emailGroups = new Map<string, UserProfile[]>();
+      for (const u of rawUserList) {
+        const email = (u.email || '').toLowerCase().trim();
+        if (!email) {
+          emailGroups.set(u.uid, [u]);
+          continue;
+        }
+        const existing = emailGroups.get(email) || [];
+        existing.push(u);
+        emailGroups.set(email, existing);
+      }
+
+      const deduplicatedList: UserProfile[] = [];
+      const duplicateMergeTasks: Array<{ keeper: UserProfile; duplicates: UserProfile[] }> = [];
+
+      for (const [_, group] of emailGroups.entries()) {
+        if (group.length === 1) {
+          deduplicatedList.push(group[0]);
+          continue;
+        }
+
+        // Multiple docs found for the same email: pick the most active/latest document
+        group.sort((a, b) => {
+          const timeA = (a.lastLoginAt?.seconds || a.createdAt?.seconds || 0);
+          const timeB = (b.lastLoginAt?.seconds || b.createdAt?.seconds || 0);
+          return timeB - timeA;
+        });
+
+        const keeper = group[0];
+        const duplicates = group.slice(1);
+
+        // Combine permissions so nothing is lost in UI state
+        const combinedRole = group.some(u => u.role === 'superadmin') 
+          ? 'superadmin' 
+          : group.some(u => u.role === 'admin' || u.isAdmin) 
+            ? 'admin' 
+            : keeper.role || 'user';
+
+        const combinedStatus = group.some(u => u.status === 'approved' || u.isApproved)
+          ? 'approved'
+          : keeper.status || 'pending';
+
+        const hasPin = group.some(u => u.hasPin);
+
+        deduplicatedList.push({
+          ...keeper,
+          role: combinedRole,
+          status: combinedStatus,
+          isAdmin: combinedRole === 'admin' || combinedRole === 'superadmin',
+          isSuperadmin: combinedRole === 'superadmin',
+          isApproved: combinedStatus === 'approved',
+          hasPin,
+        });
+
+        duplicateMergeTasks.push({ keeper, duplicates });
+      }
+
       // Sort: pending status first, then by createdAt desc
-      userList.sort((a, b) => {
+      deduplicatedList.sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1;
         if (a.status !== 'pending' && b.status === 'pending') return 1;
         const timeA = a.createdAt?.seconds || 0;
         const timeB = b.createdAt?.seconds || 0;
         return timeB - timeA;
       });
-      setUsers(userList);
+
+      setUsers(deduplicatedList);
       setLoading(false);
+
+      // SILENT BACKGROUND DEDUPLICATION IN FIRESTORE (Backend clean)
+      if (duplicateMergeTasks.length > 0 && isSuperAdmin) {
+        for (const task of duplicateMergeTasks) {
+          try {
+            const { keeper, duplicates } = task;
+            const shouldBeAdmin = duplicates.some(u => u.role === 'admin' || u.role === 'superadmin' || u.isAdmin);
+            const shouldBeApproved = duplicates.some(u => u.status === 'approved' || u.isApproved);
+            const hasPin = duplicates.some(u => u.hasPin);
+
+            const updatePayload: Record<string, any> = { updatedAt: serverTimestamp() };
+            if (shouldBeAdmin && keeper.role !== 'admin' && keeper.role !== 'superadmin') {
+              updatePayload.role = 'admin';
+              updatePayload.isAdmin = true;
+            }
+            if (shouldBeApproved && keeper.status !== 'approved') {
+              updatePayload.status = 'approved';
+              updatePayload.isApproved = true;
+            }
+            if (hasPin && !keeper.hasPin) {
+              updatePayload.hasPin = true;
+            }
+
+            await updateDoc(doc(db, 'PKT_DAD_users', keeper.uid), updatePayload);
+
+            for (const dup of duplicates) {
+              await deleteDoc(doc(db, 'PKT_DAD_users', dup.uid, 'private', 'pin')).catch(() => {});
+              await deleteDoc(doc(db, 'PKT_DAD_users', dup.uid)).catch(() => {});
+              console.info(`[Backend] Auto-merged and cleaned duplicate doc: ${dup.uid} for ${dup.email}`);
+            }
+          } catch (e) {
+            console.warn('[Backend] Silent duplicate cleanup error:', e);
+          }
+        }
+      }
     }, (error) => {
       console.error("Error loading users:", error);
       toast.error("Không thể tải danh sách tài khoản.");
@@ -80,7 +174,7 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isSuperAdmin]);
 
   const handleUpdateStatus = async (uid: string, newStatus: 'approved' | 'rejected') => {
     const targetUser = users.find(u => u.uid === uid);
@@ -193,98 +287,6 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
     } catch (error) {
       console.error("Error deleting user:", error);
       toast.error("Lỗi khi xóa tài khoản.");
-    }
-  };
-
-  // Find emails that have duplicate account documents
-  const duplicateEmails = React.useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const u of users) {
-      const email = (u.email || '').toLowerCase().trim();
-      if (email) counts.set(email, (counts.get(email) || 0) + 1);
-    }
-    return Array.from(counts.entries()).filter(([_, c]) => c > 1).map(([e]) => e);
-  }, [users]);
-
-  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
-
-  const handleAutoCleanDuplicates = async () => {
-    if (duplicateEmails.length === 0) {
-      toast.success("Không có tài khoản trùng lặp nào.");
-      return;
-    }
-
-    if (!isSuperAdmin) {
-      toast.error("Chỉ Super Admin mới có quyền dọn dẹp tài khoản.");
-      return;
-    }
-
-    if (!window.confirm(`Phát hiện ${duplicateEmails.length} email có nhiều bản ghi trùng lặp (${duplicateEmails.join(', ')}).\n\nHệ thống sẽ tự động giữ lại tài khoản mới nhất, kế thừa toàn bộ quyền hạn (Admin, mã PIN) và dọn dẹp các bản ghi cũ.\n\nBạn có muốn tiếp tục?`)) {
-      return;
-    }
-
-    setIsCleaningDuplicates(true);
-    let cleanedCount = 0;
-
-    try {
-      for (const dupEmail of duplicateEmails) {
-        const matchingUsers = users.filter(u => (u.email || '').toLowerCase().trim() === dupEmail);
-        if (matchingUsers.length <= 1) continue;
-
-        // Sort: newest createdAt first
-        const sorted = [...matchingUsers].sort((a, b) => {
-          const timeA = a.createdAt?.seconds || 0;
-          const timeB = b.createdAt?.seconds || 0;
-          return timeB - timeA;
-        });
-
-        const keeper = sorted[0];
-        const toDelete = sorted.slice(1);
-
-        // Inherit highest role and status from any existing document
-        const shouldBeAdmin = matchingUsers.some(u => u.role === 'admin' || u.role === 'superadmin' || u.isAdmin || u.isSuperadmin);
-        const shouldBeApproved = matchingUsers.some(u => u.status === 'approved' || u.isApproved);
-        const hasPinSomewhere = matchingUsers.some(u => u.hasPin);
-
-        const updatePayload: Record<string, any> = {
-          updatedAt: serverTimestamp()
-        };
-
-        if (shouldBeAdmin && keeper.role !== 'admin' && keeper.role !== 'superadmin') {
-          updatePayload.role = 'admin';
-          updatePayload.isAdmin = true;
-        }
-        if (shouldBeApproved && keeper.status !== 'approved') {
-          updatePayload.status = 'approved';
-          updatePayload.isApproved = true;
-        }
-        if (hasPinSomewhere && !keeper.hasPin) {
-          updatePayload.hasPin = true;
-        }
-
-        const keeperRef = doc(db, 'PKT_DAD_users', keeper.uid);
-        await updateDoc(keeperRef, updatePayload);
-
-        // Delete duplicates
-        for (const oldUser of toDelete) {
-          try {
-            const oldPinRef = doc(db, 'PKT_DAD_users', oldUser.uid, 'private', 'pin');
-            await deleteDoc(oldPinRef).catch(() => {});
-            const oldUserRef = doc(db, 'PKT_DAD_users', oldUser.uid);
-            await deleteDoc(oldUserRef);
-            cleanedCount++;
-          } catch (err) {
-            console.error("Error deleting duplicate doc:", oldUser.uid, err);
-          }
-        }
-      }
-
-      toast.success(`Đã tự động gộp & dọn dẹp ${cleanedCount} tài khoản trùng lặp thành công!`);
-    } catch (e) {
-      console.error("Error cleaning duplicates:", e);
-      toast.error("Có lỗi xảy ra khi dọn dẹp tài khoản.");
-    } finally {
-      setIsCleaningDuplicates(false);
     }
   };
 
@@ -427,18 +429,6 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
             >
               <RotateCcw size={13} />
               <span>Đặt lại</span>
-            </button>
-          )}
-
-          {isSuperAdmin && duplicateEmails.length > 0 && (
-            <button 
-              onClick={handleAutoCleanDuplicates} 
-              disabled={isCleaningDuplicates}
-              className="um-btn-clean-dup"
-              title="Tự động gộp quyền hạn và dọn dẹp tài khoản trùng lặp"
-            >
-              <Sparkles size={14} />
-              <span>{isCleaningDuplicates ? 'Đang dọn...' : `Dọn ${duplicateEmails.length} email trùng`}</span>
             </button>
           )}
         </div>
@@ -602,7 +592,7 @@ export default function UserManagement({ onBack }: { onBack: () => void }) {
                               className="um-action-btn btn-pin"
                               title="Xóa mã PIN hiện tại (yêu cầu người dùng đặt lại)"
                             >
-                              <Key size={12} />
+                              <Key size={13} />
                               <span>Reset PIN</span>
                             </button>
                           )}

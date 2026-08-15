@@ -2494,33 +2494,6 @@ tbody tr:nth-child(3) .row-rank { background: rgba(180,120,80,0.1); border-color
   border-color: rgba(0, 212, 255, 0.3);
 }
 
-.um-btn-clean-dup {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05));
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: var(--accent-gold);
-  border-radius: var(--radius-sm);
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 7px 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.um-btn-clean-dup:hover {
-  background: rgba(245, 158, 11, 0.25);
-  border-color: var(--accent-gold);
-  transform: translateY(-1px);
-}
-
-.um-btn-clean-dup:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
 /* ── TABLE CARD ── */
 .um-table-card {
   background: var(--bg-card);
