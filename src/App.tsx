@@ -1023,16 +1023,19 @@ function DashboardContent() {
         <header className="topbar">
           {/* Brand */}
           <div className="topbar-brand">
-            <div className="brand-icon"><Plane size={20} /></div>
-            <div>
-              <div className="eyebrow">DAD Flight Operations <span className="eyebrow-badge">LIVE</span></div>
+            <div className="brand-icon"><Plane size={18} /></div>
+            <div className="brand-info">
+              <div className="eyebrow">
+                <span>DAD Flight Operations</span>
+                <span className="eyebrow-badge">LIVE</span>
+              </div>
               {viewMode === "users" ? (
                 <h1>Quản trị hệ thống</h1>
               ) : (
                 <h1>Thống kê phục vụ chuyến bay</h1>
               )}
               {viewMode === "dashboard" && datasets.length > 0 ? (
-                <div className="topbar-meta">
+                <div className="topbar-meta desktop-only">
                   <span className="topbar-meta-item">
                     <MapPinned size={12} />
                     Cảng Hàng không Quốc tế Đà Nẵng (DAD)
@@ -1055,7 +1058,7 @@ function DashboardContent() {
                   </span>
                 </div>
               ) : viewMode === "users" ? (
-                <div className="topbar-meta">
+                <div className="topbar-meta desktop-only">
                   <span className="topbar-meta-item highlight">
                     <Users size={12} />
                     Cổng quản lý và cấu hình phân quyền người dùng
@@ -1065,40 +1068,52 @@ function DashboardContent() {
             </div>
           </div>
 
-          {/* Dataset Picker — moved from sidebar */}
+          {/* Dataset Picker (Desktop only in center) */}
           {viewMode === "dashboard" && (
-            <DatasetPicker
-              datasets={datasets}
-              activeDate={activeDate}
-              onSelect={setActiveDate}
-              onRemove={removeDataset}
-              importing={importing}
-              onUpload={handleUpload}
-              message={message}
-            />
+            <div className="desktop-only">
+              <DatasetPicker
+                datasets={datasets}
+                activeDate={activeDate}
+                onSelect={setActiveDate}
+                onRemove={removeDataset}
+                importing={importing}
+                onUpload={handleUpload}
+                message={message}
+              />
+            </div>
           )}
 
           {/* Right actions */}
           <div className="topbar-actions">
-            <LiveClock />
-            {viewMode === "dashboard" && activeTab !== "detail" && datasets.length > 0 && (
+            <div className="desktop-only"><LiveClock /></div>
+
+            {/* User Management Button for Admins */}
+            {profile && (profile.role === 'admin' || profile.role === 'superadmin') && (
               <button
-                className="upload-button"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.1))', 
-                  borderColor: 'rgba(16,185,129,0.4)', 
-                  color: '#10b981' 
-                }}
-                onClick={handleDownloadImage}
+                onClick={() => setViewMode(viewMode === 'dashboard' ? 'users' : 'dashboard')}
+                className="topbar-btn admin-btn"
+                title={viewMode === 'users' ? 'Quay lại Dashboard' : 'Quản trị người dùng'}
               >
-                <ArrowDownToLine size={15} />
-                <span>Tải ảnh</span>
+                <Users size={15} />
+                <span className="desktop-only">{viewMode === 'users' ? 'Dashboard' : 'Users'}</span>
               </button>
             )}
+
+            {viewMode === "dashboard" && activeTab !== "detail" && datasets.length > 0 && (
+              <button
+                className="topbar-btn download-btn"
+                onClick={handleDownloadImage}
+                title="Tải ảnh báo cáo"
+              >
+                <ArrowDownToLine size={15} />
+                <span className="desktop-only">Tải ảnh</span>
+              </button>
+            )}
+
             {viewMode === "dashboard" && (
-              <label className="upload-button">
+              <label className="topbar-btn upload-btn" title="Tải lên file Excel">
                 <Upload size={15} aria-hidden />
-                <span>{importing ? "Đang đọc..." : "Upload Excel"}</span>
+                <span className="desktop-only">{importing ? "Đang đọc..." : "Upload Excel"}</span>
                 <input
                   type="file"
                   accept=".xlsx,.xls"
@@ -1113,70 +1128,28 @@ function DashboardContent() {
 
             {/* Profile Avatar & Sign Out */}
             {profile && (
-              <div className="topbar-profile" style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '10px', 
-                borderLeft: '1px solid var(--border-subtle)', 
-                paddingLeft: '16px', 
-                marginLeft: '16px' 
-              }}>
-                {/* User Management Button for Admins */}
-                {(profile.role === 'admin' || profile.role === 'superadmin') && (
-                  <button
-                    onClick={() => setViewMode(viewMode === 'dashboard' ? 'users' : 'dashboard')}
-                    className="preset-btn"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      fontSize: '0.78rem',
-                      borderColor: viewMode === 'users' ? 'var(--accent-cyan)' : 'var(--border-subtle)',
-                      background: viewMode === 'users' ? 'rgba(0, 212, 255, 0.06)' : 'transparent',
-                      color: viewMode === 'users' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                      marginRight: '8px'
-                    }}
-                  >
-                    <Users size={14} />
-                    <span>{viewMode === 'users' ? 'Dashboard' : 'Quản lý Users'}</span>
-                  </button>
-                )}
-
+              <div className="topbar-profile">
                 <img 
                   src={profile.photoURL} 
                   alt={profile.displayName} 
                   referrerPolicy="no-referrer"
-                  style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid var(--border-accent)' }} 
+                  className="user-avatar"
+                  title={profile.displayName}
                 />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                <div className="user-details desktop-only">
+                  <span className="user-name">
                     {profile.displayName}
                   </span>
-                  <span style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)', textTransform: 'capitalize' }}>
+                  <span className="user-role">
                     {profile.role === 'superadmin' ? 'Super Admin' : profile.role === 'admin' ? 'Admin' : 'Thành viên'}
                   </span>
                 </div>
                 <button 
                   onClick={logout} 
                   title="Đăng xuất" 
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    color: 'var(--text-secondary)', 
-                    cursor: 'pointer', 
-                    padding: '6px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    borderRadius: '4px', 
-                    marginLeft: '4px',
-                    transition: 'all 0.2s' 
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-red)'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                  className="logout-btn"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={15} />
                 </button>
               </div>
             )}
@@ -1227,43 +1200,58 @@ function DashboardContent() {
               <ActiveFilterChips filters={filters} hasActiveDateFilter={hasActiveDateFilter} />
             </section>
 
-            {/* MOBILE FILTER TRIGGER BAR */}
-            <div className="mobile-filter-bar mobile-only">
-              <div className="mobile-filter-bar-header">
-                <button
-                  type="button"
-                  className="mobile-filter-trigger-btn"
-                  onClick={() => setIsMobileFilterOpen(true)}
-                >
-                  <SlidersHorizontal size={14} />
-                  <span>Bộ lọc</span>
-                  {activeFilterCount > 0 ? (
-                    <span className="mobile-filter-count-badge">{activeFilterCount}</span>
-                  ) : (
-                    <span className="mobile-filter-hint">Tùy chỉnh</span>
-                  )}
-                  <ChevronDown size={14} style={{ marginLeft: "auto", opacity: 0.7 }} />
-                </button>
-                {hasActiveFilters && (
+            {/* MOBILE UNIFIED CONTROL BAR (DATE PICKER & FILTER BUTTON) */}
+            <div className="mobile-control-bar mobile-only">
+              <div className="mobile-control-row">
+                <div className="mobile-control-cell">
+                  <DatasetPicker
+                    datasets={datasets}
+                    activeDate={activeDate}
+                    onSelect={setActiveDate}
+                    onRemove={removeDataset}
+                    importing={importing}
+                    onUpload={handleUpload}
+                    message={message}
+                  />
+                </div>
+                <div className="mobile-control-cell filter-cell">
                   <button
                     type="button"
-                    className="mobile-filter-reset-btn"
-                    onClick={() => {
-                      const { dateFrom, dateTo } = getDefaultDateRange(datasets);
-                      setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom, dateTo }));
-                    }}
+                    className={`mobile-filter-trigger-btn ${hasActiveFilters ? "is-active" : ""}`}
+                    onClick={() => setIsMobileFilterOpen(true)}
                   >
-                    <RotateCcw size={12} />
-                    <span>Xóa</span>
+                    <SlidersHorizontal size={13} />
+                    <span>Bộ lọc</span>
+                    {activeFilterCount > 0 ? (
+                      <span className="mobile-filter-count-badge">{activeFilterCount}</span>
+                    ) : (
+                      <span className="mobile-filter-hint">Tất cả</span>
+                    )}
+                    <ChevronDown size={13} style={{ marginLeft: "auto", opacity: 0.6 }} />
                   </button>
-                )}
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      className="mobile-quick-reset-btn"
+                      onClick={() => {
+                        const { dateFrom, dateTo } = getDefaultDateRange(datasets);
+                        setFilters((f) => ({ ...INITIAL_FILTERS, dateFrom, dateTo }));
+                      }}
+                      title="Xóa bộ lọc"
+                    >
+                      <RotateCcw size={12} />
+                    </button>
+                  )}
+                </div>
               </div>
               {hasActiveFilters && (
-                <ActiveFilterChips
-                  filters={filters}
-                  hasActiveDateFilter={hasActiveDateFilter}
-                  onOpenFilter={() => setIsMobileFilterOpen(true)}
-                />
+                <div className="mobile-chips-row">
+                  <ActiveFilterChips
+                    filters={filters}
+                    hasActiveDateFilter={hasActiveDateFilter}
+                    onOpenFilter={() => setIsMobileFilterOpen(true)}
+                  />
+                </div>
               )}
             </div>
 
