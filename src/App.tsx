@@ -1031,48 +1031,15 @@ function DashboardContent() {
         <header className="topbar">
           {/* Brand */}
           <div className="topbar-brand">
-            <div className="brand-icon"><Plane size={18} /></div>
+            <div className="brand-icon"><Plane size={19} /></div>
             <div className="brand-info">
-              <div className="eyebrow">
+              <div className="eyebrow" style={{ marginBottom: viewMode === "users" ? 3 : 0 }}>
                 <span>DAD Flight Operations</span>
                 <span className="eyebrow-badge">LIVE</span>
               </div>
-              {viewMode === "users" ? (
+              {viewMode === "users" && (
                 <h1>Quản trị hệ thống</h1>
-              ) : (
-                <h1>Thống kê phục vụ chuyến bay</h1>
               )}
-              {viewMode === "dashboard" && datasets.length > 0 ? (
-                <div className="topbar-meta desktop-only">
-                  <span className="topbar-meta-item">
-                    <MapPinned size={12} />
-                    Cảng Hàng không Quốc tế Đà Nẵng (DAD)
-                  </span>
-                  <span className="topbar-meta-sep" />
-                  <span className="topbar-meta-item highlight">
-                    <CalendarDays size={12} />
-                    {filters.dateFrom && filters.dateTo && filters.dateFrom !== filters.dateTo ? (
-                      <span>Từ {formatDate(filters.dateFrom)} đến {formatDate(filters.dateTo)}</span>
-                    ) : filters.dateFrom ? (
-                      <span>{formatDate(filters.dateFrom)}</span>
-                    ) : (
-                      <span>Tất cả {datasets.length} ngày</span>
-                    )}
-                  </span>
-                  <span className="topbar-meta-sep" />
-                  <span className="topbar-meta-item">
-                    <Database size={12} />
-                    {datasets.length} ngày ({formatNumber(allRecords.length)} leg)
-                  </span>
-                </div>
-              ) : viewMode === "users" ? (
-                <div className="topbar-meta desktop-only">
-                  <span className="topbar-meta-item highlight">
-                    <Users size={12} />
-                    Cổng quản lý và cấu hình phân quyền người dùng
-                  </span>
-                </div>
-              ) : null}
             </div>
           </div>
 
@@ -1093,7 +1060,6 @@ function DashboardContent() {
 
           {/* Right actions */}
           <div className="topbar-actions">
-            <div className="desktop-only"><LiveClock /></div>
 
             {/* User Management Button for Admins */}
             {profile && (profile.role === 'admin' || profile.role === 'superadmin') && (
@@ -1168,15 +1134,8 @@ function DashboardContent() {
           <>
             {/* DESKTOP FILTERS */}
             <section className={`filter-panel desktop-only ${hasActiveFilters ? "has-active-filters" : ""}`}>
-              <div className="filter-header">
-                <div className="panel-title" style={{ marginBottom: 0, display: "flex", alignItems: "center", gap: "6px" }}>
-                  <Filter size={13} />
-                  <span>Bộ lọc</span>
-                  {activeFilterCount > 0 && (
-                    <span className="mobile-filter-count-badge" style={{ marginLeft: "4px" }}>{activeFilterCount}</span>
-                  )}
-                </div>
-                {hasActiveFilters && (
+              {hasActiveFilters && (
+                <div className="filter-header" style={{ marginBottom: "8px", justifyContent: "flex-end" }}>
                   <button 
                     className="filter-clear-btn" 
                     type="button" 
@@ -1189,10 +1148,10 @@ function DashboardContent() {
                     <RotateCcw size={10} style={{ display: "inline", marginRight: 3 }} />
                     Xóa bộ lọc
                   </button>
-                )}
-              </div>
+                </div>
+              )}
 
-              <div className="filter-panel-body" style={{ marginTop: "14px" }}>
+              <div className="filter-panel-body" style={{ marginTop: 0 }}>
                 <FilterInputs
                   filters={filters}
                   setFilters={setFilters}
@@ -1265,14 +1224,14 @@ function DashboardContent() {
 
             {/* SCORE CARDS */}
             <section className="score-grid">
-              <ScoreCard color="cyan" icon={<Plane size={17} />} label="Chuyến bay" value={formatNumber(filteredTotals.legs)} detail={`${formatNumber(filteredTotals.sourceRows)} dòng gốc`} />
-              <ScoreCard color="blue" icon={<Users size={17} />} label="Tổng khách" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)}`} />
-              <ScoreCard color="purple" icon={<ArrowDownToLine size={17} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
-              <ScoreCard color="gold" icon={<Percent size={17} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg cấu hình`} />
-              <ScoreCard color="blue" icon={<Globe size={17} />} label="Khách quốc tế" value={formatNumber(filteredTotals.intlPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.intlPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.intlLegs)} leg`} />
-              <ScoreCard color="green" icon={<MapPin size={17} />} label="Khách nội địa" value={formatNumber(filteredTotals.domesticPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.domesticPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.domesticLegs)} leg`} />
-              <ScoreCard color="green" icon={<Trophy size={17} />} label="Quốc tế Top 1" value={topIntlCountry ? topIntlCountry.countryDisplay : "—"} detail={topIntlCountry ? `${formatNumber(topIntlCountry.passengers)} khách (${topIntlCountry.percentage.toFixed(1)}% QT)` : "Chưa có dữ liệu"} />
-              <ScoreCard color="cyan" icon={<MapPinned size={17} />} label="Mạng khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
+              <ScoreCard color="cyan" icon={<Plane size={19} />} label="Chuyến bay" value={formatNumber(filteredTotals.legs)} detail={`${formatNumber(filteredTotals.sourceRows)} dòng gốc`} />
+              <ScoreCard color="blue" icon={<Users size={19} />} label="Tổng khách" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)}`} />
+              <ScoreCard color="purple" icon={<ArrowDownToLine size={19} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
+              <ScoreCard color="gold" icon={<Percent size={19} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg cấu hình`} />
+              <ScoreCard color="blue" icon={<Globe size={19} />} label="Khách quốc tế" value={formatNumber(filteredTotals.intlPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.intlPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.intlLegs)} leg`} />
+              <ScoreCard color="green" icon={<MapPin size={19} />} label="Khách nội địa" value={formatNumber(filteredTotals.domesticPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.domesticPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% · ${formatNumber(filteredTotals.domesticLegs)} leg`} />
+              <ScoreCard color="green" icon={<Trophy size={19} />} label="Quốc tế Top 1" value={topIntlCountry ? topIntlCountry.countryDisplay : "—"} detail={topIntlCountry ? `${formatNumber(topIntlCountry.passengers)} khách (${topIntlCountry.percentage.toFixed(1)}% QT)` : "Chưa có dữ liệu"} />
+              <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Mạng khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
             </section>
           </>
         )}
