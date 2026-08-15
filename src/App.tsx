@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Database,
   Filter,
+  Globe,
   MapPinned,
   Package,
   Percent,
@@ -1261,7 +1262,9 @@ function DashboardContent() {
               <ScoreCard color="blue" icon={<Users size={19} />} label="Tổng khách bay" value={formatNumber(filteredTotals.passengers)} detail={`ADL ${formatNumber(filteredTotals.adults)} · CHD ${formatNumber(filteredTotals.children)} · INF ${formatNumber(filteredTotals.infants)}`} />
               <ScoreCard color="purple" icon={<ArrowDownToLine size={19} />} label="Đến DAD" value={formatNumber(filteredTotals.arrivals)} detail={`${formatNumber(filteredTotals.arrivalPassengers)} khách đến`} />
               <ScoreCard color="green" icon={<ArrowUpFromLine size={19} />} label="Đi từ DAD" value={formatNumber(filteredTotals.departures)} detail={`${formatNumber(filteredTotals.departurePassengers)} khách đi`} />
+              <ScoreCard color="blue" icon={<Globe size={19} />} label="Khách quốc tế" value={formatNumber(filteredTotals.intlPassengers)} detail={`${filteredTotals.passengers > 0 ? ((filteredTotals.intlPassengers / filteredTotals.passengers) * 100).toFixed(1) : 0}% tổng khách · ${formatNumber(filteredTotals.intlLegs)} leg`} />
               <ScoreCard color="gold" icon={<Percent size={19} />} label="Tỷ lệ lấp đầy" value={overallOccupancy.rate !== null ? `${overallOccupancy.rate.toFixed(1)}%` : "—"} detail={`Tính trên ${overallOccupancy.flightsWithCapCount}/${overallOccupancy.totalFlights} leg bay có cấu hình`} />
+              <ScoreCard color="green" icon={<Package size={19} />} label="Hàng hóa & Hành lý" value={`${(filteredTotals.totalPayloadKg / 1000).toFixed(1)} tấn`} detail={`HL ${(filteredTotals.baggageKg / 1000).toFixed(1)}T · Hàng ${(filteredTotals.cargoKg / 1000).toFixed(1)}T`} />
               <ScoreCard color="cyan" icon={<MapPinned size={19} />} label="Phạm vi khai thác" value={`${formatNumber(filteredTotals.countryCount)} quốc gia`} detail={`${formatNumber(filteredTotals.airlineCount)} hãng hàng không`} />
             </section>
           </>

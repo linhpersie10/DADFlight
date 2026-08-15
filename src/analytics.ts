@@ -90,6 +90,28 @@ export function buildProvinceOptions(records: FlightLeg[], country: string) {
 export function totals(records: FlightLeg[]) {
   const airlines = new Set(records.map((record) => record.airline));
   const countries = new Set(records.map((record) => getAirportInfo(record.marketAirport).country));
+
+  let intlLegs = 0;
+  let intlPassengers = 0;
+  let domesticLegs = 0;
+  let domesticPassengers = 0;
+
+  for (const record of records) {
+    const isDomestic = getAirportInfo(record.origin).country === "Vietnam" && getAirportInfo(record.destination).country === "Vietnam";
+    if (isDomestic) {
+      domesticLegs++;
+      domesticPassengers += record.passengerTotal;
+    } else {
+      intlLegs++;
+      intlPassengers += record.passengerTotal;
+    }
+  }
+
+  const baggageKg = records.reduce((sum, record) => sum + record.baggageKg, 0);
+  const parcelKg = records.reduce((sum, record) => sum + record.parcelKg, 0);
+  const cargoKg = records.reduce((sum, record) => sum + record.cargoKg, 0);
+  const totalPayloadKg = baggageKg + parcelKg + cargoKg;
+
   return {
     legs: records.length,
     sourceRows: new Set(records.map((record) => record.sourceRow)).size,
@@ -101,9 +123,14 @@ export function totals(records: FlightLeg[]) {
     departures: records.filter((record) => record.direction === "departure").length,
     arrivalPassengers: records.filter((record) => record.direction === "arrival").reduce((sum, record) => sum + record.passengerTotal, 0),
     departurePassengers: records.filter((record) => record.direction === "departure").reduce((sum, record) => sum + record.passengerTotal, 0),
-    baggageKg: records.reduce((sum, record) => sum + record.baggageKg, 0),
-    parcelKg: records.reduce((sum, record) => sum + record.parcelKg, 0),
-    cargoKg: records.reduce((sum, record) => sum + record.cargoKg, 0),
+    baggageKg,
+    parcelKg,
+    cargoKg,
+    totalPayloadKg,
+    intlLegs,
+    intlPassengers,
+    domesticLegs,
+    domesticPassengers,
     airlineCount: airlines.size,
     countryCount: countries.size,
   };
