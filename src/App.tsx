@@ -160,7 +160,7 @@ function DatasetPicker({
         <div className="dataset-dropdown">
           <div className="dropdown-header">
             <span>Dữ liệu theo ngày</span>
-            <label className="upload-button-sm">
+            <label className="upload-button-sm desktop-only">
               <Upload size={13} />
               <span>{importing ? "Đang đọc..." : "Upload"}</span>
               <input
@@ -1102,19 +1102,19 @@ function DashboardContent() {
 
             {viewMode === "dashboard" && activeTab !== "detail" && datasets.length > 0 && (
               <button
-                className="topbar-btn download-btn"
+                className="topbar-btn download-btn desktop-only"
                 onClick={handleDownloadImage}
                 title="Tải ảnh báo cáo"
               >
                 <ArrowDownToLine size={15} />
-                <span className="desktop-only">Tải ảnh</span>
+                <span>Tải ảnh</span>
               </button>
             )}
 
             {viewMode === "dashboard" && (
-              <label className="topbar-btn upload-btn" title="Tải lên file Excel">
+              <label className="topbar-btn upload-btn desktop-only" title="Tải lên file Excel">
                 <Upload size={15} aria-hidden />
-                <span className="desktop-only">{importing ? "Đang đọc..." : "Upload Excel"}</span>
+                <span>{importing ? "Đang đọc..." : "Upload Excel"}</span>
                 <input
                   type="file"
                   accept=".xlsx,.xls"
