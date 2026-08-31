@@ -427,10 +427,17 @@ function ScoreCard({
   );
 }
 
-function SummaryTable({ rows, maxPassengers, type = "market" }: { rows: SummaryRow[]; maxPassengers: number; type?: TabKey }) {
+const EXPORT_TOP_N = 10;
+
+function SummaryTable({ rows, maxPassengers, type = "market", exportMode = false }: { rows: SummaryRow[]; maxPassengers: number; type?: TabKey; exportMode?: boolean }) {
   const isCountry = type === "country";
   const isAirline = type === "airline";
   const isPoint = !isCountry && !isAirline;
+  const colSpan = isPoint ? 11 : 9;
+
+  // Khi xuất ảnh: chỉ lấy top 10, phần còn lại gộp thành 1 dòng tóm tắt
+  const displayRows = exportMode ? rows.slice(0, EXPORT_TOP_N) : rows;
+  const remainingCount = exportMode ? rows.length - EXPORT_TOP_N : 0;
 
   return (
     <>
@@ -452,7 +459,7 @@ function SummaryTable({ rows, maxPassengers, type = "market" }: { rows: SummaryR
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => {
+            {displayRows.map((row, index) => {
               const width = maxPassengers ? Math.max(4, Math.round((row.passengers / maxPassengers) * 100)) : 0;
               return (
                 <tr key={row.key} className="mobile-card-row">
@@ -478,8 +485,23 @@ function SummaryTable({ rows, maxPassengers, type = "market" }: { rows: SummaryR
                 </tr>
               );
             })}
+            {/* Dòng tóm tắt "và X... khác" khi xuất ảnh */}
+            {exportMode && remainingCount > 0 && (
+              <tr>
+                <td colSpan={colSpan} style={{
+                  textAlign: "center",
+                  color: "var(--text-muted)",
+                  fontStyle: "italic",
+                  fontSize: "0.82rem",
+                  padding: "10px 12px",
+                  letterSpacing: "0.02em",
+                }}>
+                  và {remainingCount} {isCountry ? "quốc gia" : isAirline ? "hãng" : "điểm"} khác...
+                </td>
+              </tr>
+            )}
             {!rows.length && (
-              <tr><td colSpan={isPoint ? 11 : 9} className="empty-cell">Không có dữ liệu phù hợp với bộ lọc.</td></tr>
+              <tr><td colSpan={colSpan} className="empty-cell">Không có dữ liệu phù hợp với bộ lọc.</td></tr>
             )}
           </tbody>
         </table>
@@ -631,6 +653,7 @@ function DashboardContent() {
   const [activeTab, setActiveTab] = useState<TabKey>("market");
   const [viewMode, setViewMode] = useState<"dashboard" | "users">("dashboard");
   const [importing, setImporting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [message, setMessage] = useState("");
   const [airportsVersion, setAirportsVersion] = useState(0);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -966,6 +989,11 @@ function DashboardContent() {
     
     const toastId = toast.loading("Đang tạo ảnh chất lượng cao...");
     try {
+      // Bật chế độ export: SummaryTable chỉ render top 10
+      setIsExporting(true);
+      // Chờ React re-render xong
+      await new Promise(resolve => setTimeout(resolve, 80));
+
       const dataUrl = await toPng(node, {
         quality: 1,
         pixelRatio: 2,
@@ -994,6 +1022,9 @@ function DashboardContent() {
     } catch (err) {
       console.error(err);
       toast.error("Lỗi khi tạo ảnh.", { id: toastId });
+    } finally {
+      // Khôi phục lại bảng đầy đủ
+      setIsExporting(false);
     }
   };
 
@@ -1352,7 +1383,7 @@ function DashboardContent() {
             ) : activeTab === "detail" ? (
               <DetailTable records={filteredRecords} />
             ) : (
-              <SummaryTable rows={tabRows[activeTab]} maxPassengers={maxPassengers} type={activeTab} />
+              <SummaryTable rows={tabRows[activeTab]} maxPassengers={maxPassengers} type={activeTab} exportMode={isExporting} />
             )}
           </section>
         </div>
