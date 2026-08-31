@@ -1467,7 +1467,7 @@ select:focus, input:focus {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
   padding: 14px 10px;
-  min-height: 82px;
+  min-height: 92px;
   min-width: 0;
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
   cursor: default;
@@ -1551,7 +1551,7 @@ select:focus, input:focus {
 .score-value {
   margin-top: 3px;
   color: var(--text-primary);
-  font-size: clamp(1.15rem, 1.28vw, 1.45rem);
+  font-size: clamp(1.0rem, 1.1vw, 1.25rem);
   font-weight: 800;
   white-space: nowrap;
   letter-spacing: -0.02em;
